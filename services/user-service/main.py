@@ -12,7 +12,7 @@ def handler(event, context):
     """
     This is the new handler function that API Gateway will call.
     'event' is a dictionary containing the request info.
-    # ADDING TO TRIGGER THE WORKFLOW
+    # adding this line to trigger the workflow
     """
     try:
         # 1. Get the request data from the 'body'

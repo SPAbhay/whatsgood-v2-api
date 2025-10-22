@@ -72,6 +72,7 @@ jobs:
           # --- THIS IS THE FIX FOR YOUR M3 MAC ---
           # Explicitly build for the linux/arm64 architecture to match your Lambda config
           platforms: linux/arm64
+          provenance: false
 
       # Step 7: Update the Lambda function to use the new image
       # This runs an AWS CLI command to deploy the new image

@@ -1,0 +1,82 @@
+# This is the name of the workflow, which you'll see in the GitHub "Actions" tab.
+name: Deploy User Service to Lambda
+
+# This section defines WHEN the workflow will run.
+on:
+  push:
+    branches:
+      # Only run on pushes to the 'main' branch
+      - main
+    paths:
+      # Only run if files inside this specific service directory have changed
+      - 'services/user-service/**'
+
+# --- CONFIGURATION ---
+# Set environment variables for the workflow.
+# These make it easy to manage names and regions.
+env:
+  AWS_REGION: us-east-1                   # Your AWS region
+  ECR_REPOSITORY: whatsgood/user-service  # The name of your ECR repository for this service
+  LAMBDA_FUNCTION_NAME: whatsgood-user-service # The name of your Lambda function
+
+# --- PERMISSIONS ---
+# This is required for OIDC authentication with AWS.
+# It allows the workflow to request a temporary token from AWS.
+permissions:
+  id-token: write   # This is required for requesting the JWT
+  contents: read    # This is required for actions/checkout
+
+jobs:
+  # Define a single job called "deploy"
+  deploy:
+    name: Build, Push, and Deploy
+    runs-on: ubuntu-latest # Use a standard GitHub-hosted runner
+
+    steps:
+      # Step 1: Check out your repository code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Set up QEMU for multi-platform builds
+      # This is CRITICAL for building an ARM64 image on an AMD64 runner (like GitHub's)
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      # Step 3: Set up Docker Buildx
+      # This is the modern Docker builder that enables multi-platform builds
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Step 4: Configure AWS credentials using OIDC
+      # This securely logs into AWS without needing static access keys
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::438886543377:role/github-actions-whatsgood-deploy-role # Paste your IAM Role ARN here
+          aws-region: ${{ env.AWS_REGION }}
+
+      # Step 5: Log in to Amazon ECR
+      # Uses the credentials from the previous step to log Docker into your ECR registry
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Step 6: Build and push the Docker image to ECR
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/user-service # The path to the service's code
+          push: true
+          # Use the unique Git commit SHA as the image tag for traceability
+          tags: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+          # --- THIS IS THE FIX FOR YOUR M3 MAC ---
+          # Explicitly build for the linux/arm64 architecture to match your Lambda config
+          platforms: linux/arm64
+
+      # Step 7: Update the Lambda function to use the new image
+      # This runs an AWS CLI command to deploy the new image
+      - name: Update Lambda function
+        run: |
+          aws lambda update-function-code \
+            --function-name ${{ env.LAMBDA_FUNCTION_NAME }} \
+            --image-uri ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}

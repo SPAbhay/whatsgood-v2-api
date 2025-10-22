@@ -1,0 +1,102 @@
+# This is the name of the workflow, which you'll see in the GitHub "Actions" tab.
+name: Deploy Recommendation Service to ECS
+
+# This section defines WHEN the workflow will run.
+on:
+  push:
+    branches:
+      # Only run on pushes to the 'main' branch
+      - main
+    paths:
+      # Only run if files inside this specific service directory have changed
+      - 'services/recommendation-service/**'
+
+# --- CONFIGURATION ---
+# Set environment variables for the workflow.
+# These make it easy to manage names and regions.
+env:
+  AWS_REGION: us-east-1                   # Your AWS region
+  ECR_REPOSITORY: whatsgood/recommendation-service  # The name of your ECR repository for this service
+  ECS_CLUSTER_NAME: whatsgood-cluster # Your ECS cluster name
+  ECS_SERVICE_NAME: whatsgood-recommendation-service-service-ufoq6g9g # Your ECS service name
+  ECS_TASK_DEFINITION_FAMILY: whatsgood-recommendation-service # The family name of your task definition
+  CONTAINER_NAME: whatsgood-recommendation-service # The container name within the task def
+
+# --- PERMISSIONS ---
+# This is required for OIDC authentication with AWS.
+# It allows the workflow to request a temporary token from AWS.
+permissions:
+  id-token: write   # This is required for requesting the JWT
+  contents: read    # This is required for actions/checkout
+
+jobs:
+  # Define a single job called "deploy"
+  deploy:
+    name: Build, Push, and Deploy
+    runs-on: ubuntu-latest # Use a standard GitHub-hosted runner
+
+    steps:
+      # Step 1: Check out your repository code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Set up QEMU for multi-platform builds
+      # This is CRITICAL for building an ARM64 image on an AMD64 runner (like GitHub's)
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      # Step 3: Set up Docker Buildx
+      # This is the modern Docker builder that enables multi-platform builds
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Step 4: Configure AWS credentials using OIDC
+      # This securely logs into AWS without needing static access keys
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::438886543377:role/github-actions-whatsgood-deploy-role # Paste your IAM Role ARN here
+          aws-region: ${{ env.AWS_REGION }}
+
+      # Step 5: Log in to Amazon ECR
+      # Uses the credentials from the previous step to log Docker into your ECR registry
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Step 6: Build and push the Docker image to ECR
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/interaction-service # The path to the service's code
+          push: true
+          # Use the unique Git commit SHA as the image tag for traceability
+          tags: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+          # --- THIS IS THE FIX FOR YOUR M3 MAC ---
+          # Explicitly build for the linux/arm64 architecture to match your Lambda config
+          platforms: linux/arm64
+          provenance: false
+
+      # Step 7: Download existing task definition
+      - name: Download task definition
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_DEFINITION_FAMILY }} \
+            --query taskDefinition > task-definition.json
+
+      # Step 8: Fill in the new image ID in the task definition
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+
+      # Step 9: Deploy Amazon ECS task definition
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE_NAME }}
+          cluster: ${{ env.ECS_CLUSTER_NAME }}
+          wait-for-service-stability: true # Wait for deployment to complete

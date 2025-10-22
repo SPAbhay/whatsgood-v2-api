@@ -1,0 +1,27 @@
+services:
+  user-service:
+    build: ./services/user-service
+    ports:
+      - "8001:8000" 
+    volumes:
+      - ./services/user-service:/app
+    env_file:
+      - .env 
+
+  interaction-service:
+    build: ./services/interaction-service
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./services/interaction-service:/app
+    env_file:
+      - .env
+
+  recommendation-service:
+    build: ./services/recommendation-service
+    ports:
+      - "8003:8000"
+    volumes:
+      - ./services/recommendation-service:/app
+    env_file:
+      - .env

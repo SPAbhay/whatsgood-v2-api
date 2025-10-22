@@ -1,0 +1,16 @@
+# Database connectors
+supabase
+pinecone
+
+# AI Model
+sentence-transformers
+numpy==1.26.4
+scikit-learn==1.4.2
+
+# RSS parsing
+feedparser
+
+# Utilities
+python-dotenv
+beautifulsoup4
+python-dateutil

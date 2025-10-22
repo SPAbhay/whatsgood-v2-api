@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+supabase
+pinecone
+groq
+python-dotenv
+pydantic
+
+# AI Models
+sentence-transformers 
+numpy

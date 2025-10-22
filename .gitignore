@@ -1,0 +1,46 @@
+# --- Secrets ---
+# Ignore environment variables file
+.env
+
+# --- Python ---
+# Ignore Python cache files and artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+
+# Ignore virtual environments
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# --- ML Models ---
+# Ignore downloaded model directories within services
+# This correctly ignores services/ingestion-service/model/
+services/*/model/
+
+# --- IDE/Editor ---
+# Ignore editor configuration files
+.vscode/
+.idea/
+
+# --- Operating System ---
+# Ignore macOS specific files
+.DS_Store
+# Ignore Windows specific files
+Thumbs.db
+
+# --- Logs ---
+# Ignore log files and directories
+*.log
+logs/
+*.log.*
+
+# --- Build/Distribution ---
+# Ignore typical build/distribution artifacts (if any are generated later)
+build/
+dist/

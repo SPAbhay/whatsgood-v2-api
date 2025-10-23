@@ -168,7 +168,7 @@ class RecommendationResponse(BaseModel):
 @app.get("/recommendations", response_model=RecommendationResponse)
 async def get_recommendations(user_id: str):
     """
-    The main multi-stage RAG pipeline endpoint.
+    The main multi-stage RAG pipeline endpoint
     """
     try:
         print(f"RecSvc: Received request for user_id: {user_id}")

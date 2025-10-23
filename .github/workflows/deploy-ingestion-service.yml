@@ -1,5 +1,5 @@
 # This is the name of the workflow, which you'll see in the GitHub "Actions" tab.
-name: Deploy User Service to Lambda
+name: Deploy Ingestion Service to Lambda
 
 # This section defines WHEN the workflow will run.
 on:

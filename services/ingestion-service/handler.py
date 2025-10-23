@@ -42,7 +42,6 @@ def get_iso_date(published_str):
 def ingest(event, context):
     """
     This is the main function that AWS Lambda will call.
-    # Change to trigger workflow
     """
     
     # --- MODIFICATION ---

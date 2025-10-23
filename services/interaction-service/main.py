@@ -10,6 +10,7 @@ supabase: Client = create_client(url, key)
 def handler(event, context):
     """
     This is the new handler function that API Gateway will call.
+    # Change to trigger workflow
     """
     try:
         # 1. Get the request data from the 'body'

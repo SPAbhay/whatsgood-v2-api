@@ -169,6 +169,7 @@ class RecommendationResponse(BaseModel):
 async def get_recommendations(user_id: str):
     """
     The main multi-stage RAG pipeline endpoint.
+    # Change to trigger workflow
     """
     try:
         print(f"RecSvc: Received request for user_id: {user_id}")

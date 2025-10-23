@@ -18,7 +18,7 @@ env:
   AWS_REGION: us-east-1                   # Your AWS region
   ECR_REPOSITORY: whatsgood/recommendation-service  # The name of your ECR repository for this service
   ECS_CLUSTER_NAME: whatsgood-cluster # Your ECS cluster name
-  ECS_SERVICE_NAME: whatsgood-recommendation-service-service-ufoq6g9g # Your ECS service name
+  ECS_SERVICE_NtAME: whatsgood-recommendation-service-service-ufoq6g9g # Your ECS service name
   ECS_TASK_DEFINITION_FAMILY: whatsgood-recommendation-service # The family name of your task definition
   CONTAINER_NAME: whatsgood-recommendation-service # The container name within the task def
 
@@ -78,10 +78,11 @@ jobs:
           provenance: false
 
       # Step 7: Download existing task definition
-      - name: Download task definition
+      - name: Download and clean task definition
         run: |
-          aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_DEFINITION_FAMILY }} \
-            --query taskDefinition > task-definition.json
+          aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_DEFINITION_FAMILY }} --query taskDefinition \
+          | jq 'del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.requiresAttributes) | del(.compatibilities) | del(.registeredAt) | del(.registeredBy) | del(.tags) | del(.ephemeralStorage) | del(.runtimePlatform) | del(.enableFaultInjection)' \
+          > task-definition.json
 
       # Step 8: Fill in the new image ID in the task definition
       - name: Fill in the new image ID in the Amazon ECS task definition

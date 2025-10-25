@@ -4,7 +4,6 @@ import hashlib
 from supabase import create_client, Client
 
 # --- Clients are loaded ONCE during the cold start ---
-# This code runs during the "init" phase.
 url: str = os.environ.get("SUPABASE_URL")
 key: str = os.environ.get("SUPABASE_ANON_KEY")
 supabase: Client = create_client(url, key)
@@ -64,22 +63,17 @@ def login_handler(event, context):
 
 def persona_handler(event, context):
     """
-    This is the new handler function that API Gateway will call.
-    'event' is a dictionary containing the request info.
-    # adding this line to trigger the workflow
+    Handles setting or updating a user's persona.
+    (This was your old 'handler' function, now renamed)
     """
     try:
-        # 1. Get the request data from the 'body'
-        # The body comes in as a JSON string, so we must parse it
         body = json.loads(event.get('body', '{}'))
-        
         user_id = body.get('user_id')
         persona = body.get('persona')
 
         if not user_id or not persona:
             raise ValueError("user_id and persona are required")
 
-        # 2. Your original Supabase logic (this is unchanged)
         response = supabase.table('users').update({
             'base_persona': persona
         }).eq('id', user_id).execute()
@@ -87,11 +81,10 @@ def persona_handler(event, context):
         if not response.data:
              raise Exception("User not found")
 
-        # 3. Return a special dictionary that API Gateway understands
         return {
             'statusCode': 200,
             'headers': {
-                'Access-Control-Allow-Origin': '*', # Required for CORS
+                'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Headers': 'Content-Type',
                 'Access-Control-Allow-Methods': 'POST,OPTIONS'
             },
@@ -104,10 +97,9 @@ def persona_handler(event, context):
         }
 
     except Exception as e:
-        # If anything goes wrong, return a 500 error
         return {
             'statusCode': 500,
-            'headers': { 'Access-Control-Allow-Origin': '*' }, # CORS
+            'headers': { 'Access-Control-Allow-Origin': '*' },
             'body': json.dumps({"message": str(e)})
         }
 
@@ -116,21 +108,20 @@ def handler(event, context):
     This is the main handler that routes to the correct function
     based on the HTTP method and path.
     """
-    http_method = event.get('httpMethod') # Simpler way to get method
-    path = event.get('path')             # Path directly from the event root
+    http_method = event.get('httpMethod') # This is the correct way for your setup
+    path = event.get('path')             # This is the correct way for your setup
 
-    # --- Check against paths WITHOUT the stage ---
+    # --- ROUTING LOGIC ---
     if http_method == 'POST' and path == '/persona':
         return persona_handler(event, context)
 
     if http_method == 'POST' and path == '/login':
         return login_handler(event, context)
-    # --- End Check ---
+    # --- End Routing ---
 
     # Default fallback if no route matches
-    print(f"Handler received unhandled request: Method={http_method}, Path={path}") # Add logging
     return {
         'statusCode': 404,
-        'headers': { 'Access-Control-Allow-Origin': '*' }, # Good to add CORS here too
+        'headers': { 'Access-Control-Allow-Origin': '*' },
         'body': json.dumps({"message": f"Not Found: Method {http_method} on path {path}"})
      }

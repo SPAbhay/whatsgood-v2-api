@@ -154,6 +154,7 @@ class RecommendedArticle(BaseModel):
     title: str
     url: str
     summary: str
+    reason: str
     published_date: str
     industry: str
     final_score: float
@@ -242,18 +243,16 @@ async def get_recommendations(user_id: str):
             context_block += f"Title: {article['title']}\n"
             context_block += f"Content: {article['content'][:1500]}...\n\n"
 
-        system_prompt = "You are a professional, world-class news analyst."
+        system_prompt = "You are a world-class, curt news analyst. You find the most relevant articles for your client and explain why in a single, compelling sentence. You are smart, sharp, and waste no time."
         human_prompt = f"""
-My personal profile/persona is: "{user_persona_text}"
-
-Based *only* on my persona and the context from the 5 articles provided below, please do the following:
-1.  For each of the 5 articles, write a 2-3 sentence, crisp summary explaining *why* it is relevant to me.
-2.  Return your response as a single, valid JSON array, with no other text before or after it.
-3.  The JSON array should contain 5 objects. Each object must have *only* these keys: "id", "title", "summary".
-4.  Use the exact "id" and "title" provided for each article in the context.
-
-Here is the context:
-{context_block}
+My client's persona is: "{user_persona_text}"
+Based only on my client's persona and the 5 articles provided below, do the following:
+For each article, write a single, compelling "summary" sentence. This summary should not just describe the article, but connect it to the client's interests. It should sound like a human analyst, not a robot.
+For each article, write a "reason" sentence. This is a 1-2 sentence internal justification (for my eyes only) explaining the specific link between the article's content and the client's persona.
+Return your response as a single, valid JSON array.
+The JSON array must contain 5 objects. Each object must have only these keys: "id", "title", "summary", "reason".
+Use the exact "id" and "title" provided for each article in the context.
+Here is the context: {context_block}
 """
 
         chat_completion = groq_client.chat.completions.create(
@@ -334,6 +333,7 @@ Here is the context:
                         title=summary_data['title'],
                         url=article['article_url'],
                         summary=summary_data['summary'],
+                        reason=summary_data['reason'],
                         published_date=article['published_date'],
                         industry=article['industry'],
                         final_score=article['final_score']

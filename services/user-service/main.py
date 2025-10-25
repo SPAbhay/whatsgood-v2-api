@@ -103,6 +103,46 @@ def persona_handler(event, context):
             'body': json.dumps({"message": str(e)})
         }
 
+def me_handler(event, context):
+    """
+    Gets the user's current persona and their last 5 interactions.
+    """
+    try:
+        # We get the user_id from the API Gateway authorizer,
+        # which we will set up in the next step.
+        # For now, let's get it from the query string for testing.
+
+        api_key = event.get('headers', {}).get('x-api-key')
+        if not api_key:
+            raise ValueError("x-api-key header is required")
+
+        key_hash = hash_key(api_key)
+
+        # 1. Get User
+        user_response = supabase.table('users').select('*').eq('api_key_hash', key_hash).execute()
+        if not user_response.data:
+            return { 'statusCode': 404, 'body': json.dumps({"message": "User not found for this API key"}) }
+
+        user = user_response.data[0]
+        user_id = user['id']
+
+        # 2. Get Last 5 Interactions
+        interaction_response = supabase.table('user_interactions').select('article_id, interaction_type, articles(title, article_url)').eq('user_id', user_id).order('created_at', desc=True).limit(5).execute()
+
+        return {
+            'statusCode': 200,
+            'headers': { 'Access-Control-Allow-Origin': '*' },
+            'body': json.dumps({
+                "status": "ok",
+                "user_id": user_id,
+                "base_persona": user.get('base_persona'),
+                "recent_interactions": interaction_response.data
+            })
+        }
+
+    except Exception as e:
+        return { 'statusCode': 500, 'headers': { 'Access-Control-Allow-Origin': '*' }, 'body': json.dumps({"message": str(e)}) }
+
 def handler(event, context):
     """
     This is the main handler that routes to the correct function
@@ -112,6 +152,9 @@ def handler(event, context):
     path = event.get('path')             # This is the correct way for your setup
 
     # --- ROUTING LOGIC ---
+    if http_method == 'GET' and path == '/me':
+        return me_handler(event, context)
+    
     if http_method == 'POST' and path == '/persona':
         return persona_handler(event, context)
 

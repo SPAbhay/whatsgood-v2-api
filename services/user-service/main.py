@@ -116,14 +116,21 @@ def handler(event, context):
     This is the main handler that routes to the correct function
     based on the HTTP method and path.
     """
-    http_method = event.get('requestContext', {}).get('http', {}).get('method')
-    path = event.get('requestContext', {}).get('http', {}).get('path')
+    http_method = event.get('httpMethod') # Simpler way to get method
+    path = event.get('path')             # Path directly from the event root
 
-    if http_method == 'POST' and path == '/v1/persona':
-        return persona_handler(event, context) # Your existing persona handler
-    
-    if http_method == 'POST' and path == '/v1/login':
+    # --- Check against paths WITHOUT the stage ---
+    if http_method == 'POST' and path == '/persona':
+        return persona_handler(event, context)
+
+    if http_method == 'POST' and path == '/login':
         return login_handler(event, context)
-    
-    # Default fallback
-    return { 'statusCode': 404, 'body': json.dumps("Not Found") }
+    # --- End Check ---
+
+    # Default fallback if no route matches
+    print(f"Handler received unhandled request: Method={http_method}, Path={path}") # Add logging
+    return {
+        'statusCode': 404,
+        'headers': { 'Access-Control-Allow-Origin': '*' }, # Good to add CORS here too
+        'body': json.dumps({"message": f"Not Found: Method {http_method} on path {path}"})
+     }

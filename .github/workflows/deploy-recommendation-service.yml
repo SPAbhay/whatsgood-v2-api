@@ -81,7 +81,7 @@ jobs:
       - name: Download and clean task definition
         run: |
           aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_DEFINITION_FAMILY }} --query taskDefinition \
-          | jq 'del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.requiresAttributes) | del(.compatibilities) | del(.registeredAt) | del(.registeredBy) | del(.tags) | del(.ephemeralStorage) | del(.runtimePlatform) | del(.enableFaultInjection)' \
+          | jq 'del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.requiresAttributes) | del(.compatibilities) | del(.registeredAt) | del(.registeredBy) | del(.tags) | del(.ephemeralStorage) | del(.enableFaultInjection)' \
           > task-definition.json
 
       # Step 8: Fill in the new image ID in the task definition

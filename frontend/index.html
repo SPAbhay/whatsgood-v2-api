@@ -10,7 +10,7 @@
             darkMode: 'class'
         }
     </script>
-    <script src="https://unpkg.com/touch-gestures@1.0.1/touch-gestures.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
     <style>
         /* Card Stack Styles */
         .card-stack {
@@ -424,31 +424,33 @@ function createCardElement(article) {
 }
 
 function initSwipe(card) {
-    const gesture = new TouchGestures(card);
+    const gesture = new Hammer(card);
     const likeBadge = card.querySelector('.like-badge');
     const dislikeBadge = card.querySelector('.dislike-badge');
     const screenWidth = window.innerWidth;
 
-    gesture.on('pan.start', () => {
+    // We only care about horizontal panning
+    gesture.get('pan').set({ direction: Hammer.DIRECTION_HORIZONTAL });
+
+    gesture.on('panstart', () => {
         if (card.querySelector('.expanded-content').classList.contains('hidden')) {
             card.classList.add('dragging');
         }
     });
 
-    gesture.on('pan.move', (e) => {
+    gesture.on('panmove', (e) => {
         if (!card.classList.contains('dragging')) return;
         
-        const rotation = e.deltaX * 0.05; // 0.05 factor for rotation
+        const rotation = e.deltaX * 0.05;
         card.style.transform = `translateX(${e.deltaX}px) rotate(${rotation}deg)`;
         
-        // Update badge opacity
         const likeOpacity = e.deltaX > 0 ? (e.deltaX / (screenWidth / 4)) : 0;
         const dislikeOpacity = e.deltaX < 0 ? (Math.abs(e.deltaX) / (screenWidth / 4)) : 0;
         card.style.setProperty('--like-opacity', likeOpacity);
         card.style.setProperty('--dislike-opacity', dislikeOpacity);
     });
 
-    gesture.on('pan.end', (e) => {
+    gesture.on('panend', (e) => {
         card.classList.remove('dragging');
         card.style.setProperty('--like-opacity', 0);
         card.style.setProperty('--dislike-opacity', 0);
@@ -458,16 +460,13 @@ function initSwipe(card) {
             const direction = e.deltaX > 0 ? 'right' : 'left';
             const interaction = direction === 'right' ? 'like' : 'dislike';
             
-            // Animate card off-screen
             card.style.transform = `translateX(${direction === 'right' ? screenWidth : -screenWidth}px) rotate(${direction === 'right' ? 30 : -30}deg)`;
             card.style.opacity = 0;
             
             handleSwipe(card.dataset.id, interaction);
             
-            // Remove card from DOM after animation
             setTimeout(() => card.remove(), 300);
             
-            // Activate next card
             const nextCard = cardStack.lastChild;
             if (nextCard) {
                 initSwipe(nextCard);

@@ -260,7 +260,7 @@ Here is the context: {context_block}
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": human_prompt}
             ],
-            model="llama-3.1-8b-instant", # Use the correct, available model
+            model="llama-3.1-8b-instant", 
             temperature=0.2,
             response_format={"type": "json_object"},
         )

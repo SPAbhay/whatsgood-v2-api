@@ -485,8 +485,8 @@ async function handleSwipe(articleId, interactionType) {
     try {
         await api.postInteraction(articleId, interactionType);
         // Refresh recent interactions in the footer
-        const me = await api.getMe();
-        renderRecentInteractions(me.recent_interactions);
+        // const me = await api.getMe();
+        // renderRecentInteractions(me.recent_interactions);
     } catch (err) {
         console.error(`Failed to post interaction: ${err.message}`);
     }

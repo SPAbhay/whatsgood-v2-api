@@ -109,6 +109,9 @@ async def get_dynamic_query_vector(user_id: str) -> np.ndarray:
         raise HTTPException(status_code=404, detail="User not found")
     
     base_persona_text = user_response.data[0]['base_persona']
+    if not base_persona_text:
+        print(f"User {user_id} has no persona, using default for vector.")
+        base_persona_text = "A person interested in technology, finance, and world news."
     base_vector = bi_encoder.encode(base_persona_text)
     
     # 2. Get recent interactions
@@ -205,7 +208,15 @@ async def get_recommendations(user_id: str):
         # --- Stage 4: Re-rank (Accurate & Slow) ---
         print("RecSvc: Stage 4 - Re-ranking with Cross-Encoder and Time Decay...")
 
-        user_persona_text = supabase.table('users').select('base_persona').eq('id', user_id).execute().data[0]['base_persona']
+        # user_persona_text = supabase.table('users').select('base_persona').eq('id', user_id).execute().data[0]['base_persona']
+        user_response = supabase.table('users').select('base_persona').eq('id', user_id).execute()
+        if not user_response.data:
+            raise HTTPException(status_code=404, detail=f"User {user_id} not found in Stage 4.")
+
+        user_persona_text = user_response.data[0]['base_persona']
+        if not user_persona_text:
+            print(f"User {user_id} has no persona, using default for re-ranking.")
+            user_persona_text = "A person interested in technology, finance, and world news."
 
         cross_encoder_pairs = []
         for article in articles_response.data:

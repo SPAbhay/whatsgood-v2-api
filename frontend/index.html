@@ -465,14 +465,19 @@ function initSwipe(card) {
             
             handleSwipe(card.dataset.id, interaction);
             
-            setTimeout(() => card.remove(), 300);
-            
-            const nextCard = cardStack.lastChild;
-            if (nextCard) {
-                initSwipe(nextCard);
-            } else {
-                endOfStack.classList.remove('hidden');
-            }
+            setTimeout(() => {
+                card.remove(); // First, remove the swiped card from the DOM
+                
+                // NOW, find the new top card
+                const nextCard = cardStack.lastChild; 
+                if (nextCard) {
+                    // Attach swipe listener to the new top card
+                    initSwipe(nextCard); 
+                } else {
+                    // No cards left, show the end message
+                    endOfStack.classList.remove('hidden');
+                }
+            }, 300);
         } else {
             // Return to stack
             card.style.transform = `translateY(${parseInt(card.style.zIndex) * -10}px)`;

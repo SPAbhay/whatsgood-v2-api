@@ -320,9 +320,9 @@ Here is the context: {context_block}
                     final_response_articles.append(RecommendedArticle(
                         id=article_id,
                         title=summary_data['title'],
-                        url=article['article_url'], # <--- Keeping your 'article_url' as it was correct
+                        url=article['article_url'], 
                         summary=summary_data['summary'],
-                        reason=summary_data['reason'], # <--- THIS IS NEW
+                        reason=summary_data['reason'], 
                         published_date=article['published_date'],
                         industry=article['industry'],
                         final_score=article['final_score']

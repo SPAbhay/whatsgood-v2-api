@@ -18,7 +18,7 @@ env:
   AWS_REGION: us-east-1                   # Your AWS region
   ECR_REPOSITORY: whatsgood/recommendation-service  # The name of your ECR repository for this service
   ECS_CLUSTER_NAME: whatsgood-cluster # Your ECS cluster name
-  ECS_SERVICE_NtAME: whatsgood-recommendation-service-service-ufoq6g9g # Your ECS service name
+  ECS_SERVICE_NAME: whatsgood-recommendation-service-service-ufoq6g9g # Your ECS service name
   ECS_TASK_DEFINITION_FAMILY: whatsgood-recommendation-service # The family name of your task definition
   CONTAINER_NAME: whatsgood-recommendation-service # The container name within the task def
 

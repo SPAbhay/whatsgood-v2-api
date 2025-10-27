@@ -177,10 +177,40 @@ async def get_recommendations(user_id: str):
             top_k=50,
             include_metadata=False
         )
-        retrieved_ids = [match.id for match in retrieve_response.matches]
+        initial_retrieved_ids = [match.id for match in retrieve_response.matches]
         pinecone_scores = {match.id: match.score for match in retrieve_response.matches}
 
-        if not retrieved_ids:
+        print(f"RecSvc: Stage 2.5 - Filtering out interacted articles for user {user_id}...")
+        try:
+            # Get ALL article IDs this user has ever liked or disliked
+            interacted_response = supabase.table('user_interactions') \
+                .select('article_id') \
+                .eq('user_id', user_id) \
+                .execute()
+
+            interacted_ids = {item['article_id'] for item in interacted_response.data} if interacted_response.data else set()
+            print(f"RecSvc: User has interacted with {len(interacted_ids)} articles.")
+
+            # Filter the retrieved list (Use initial_retrieved_ids here)
+            retrieved_ids = [id for id in initial_retrieved_ids if id not in interacted_ids]
+            print(f"RecSvc: Filtered down to {len(retrieved_ids)} candidates.")
+
+            # Ensure we still have enough candidates for the next stages
+            if len(retrieved_ids) < 5:
+                 print("RecSvc: Warning - Filtering removed too many candidates. Need at least 5 for generation.")
+                 # Fallback: If ALL were filtered, return empty now to avoid errors later
+                 if not retrieved_ids:
+                     print("RecSvc: No candidates remaining after filtering.")
+                     return RecommendationResponse(
+                         service="recommendation-service", user_id=user_id, recommendations=[]
+                     )
+                 # If some remain (1-4), we proceed but will get fewer than 5 recs.
+
+        except Exception as filter_err:
+            print(f"RecSvc: Error filtering interacted articles: {filter_err}. Proceeding without filtering.")
+            retrieved_ids = initial_retrieved_ids
+
+        if not initial_retrieved_ids:
             return RecommendationResponse(
                 service="recommendation-service",
                 user_id=user_id,
@@ -188,11 +218,15 @@ async def get_recommendations(user_id: str):
             )
 
         # --- Stage 3: Fetch Metadata ---
-        print(f"RecSvc: Stage 3 - Fetching metadata for {len(retrieved_ids)} articles from Supabase...")
-        articles_response = supabase.table('articles').select('*').in_('id', retrieved_ids).execute()
-
+        ids_to_fetch = retrieved_ids[:50]
+        print(f"RecSvc: Stage 3 - Fetching metadata for up to {len(ids_to_fetch)} articles from Supabase...") # Updated print
+        articles_response = supabase.table('articles').select('*').in_('id', ids_to_fetch).execute() # Use ids_to_fetch
         if not articles_response.data:
-            raise HTTPException(status_code=404, detail="No article metadata found for retrieved IDs")
+            print("RecSvc: No metadata found for remaining candidates.")
+            # Use the Pydantic model for the empty response
+            return RecommendationResponse(
+                 service="recommendation-service", user_id=user_id, recommendations=[]
+            )
 
         # --- Stage 4: Re-rank (Accurate & Slow) ---
         print("RecSvc: Stage 4 - Re-ranking with Cross-Encoder and Time Decay...")

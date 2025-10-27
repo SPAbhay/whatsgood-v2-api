@@ -279,16 +279,26 @@ async def get_recommendations(user_id: str):
             context_block += f"Content: {article['content'][:1500]}...\n\n"
 
         # --- NEW PROMPT ---
-        system_prompt = "You are a world-class, curt news analyst. You find the most relevant articles for your client and explain why in a single, compelling sentence. You are smart, sharp, and waste no time."
+        system_prompt = "You are a sharp news curator writing directly to a user. Your style is concise, impactful, and insightful, like a high-quality news digest. You avoid filler words and get straight to the point."
         human_prompt = f"""
-My client's persona is: "{user_persona_text}"
-Based only on my client's persona and the 5 articles provided below, do the following:
-For each article, write a single, compelling "summary" sentence. This summary should not just describe the article, but connect it to the client's interests. It should sound like a human analyst, not a robot.
-For each article, write a "reason" sentence. This is a 1-2 sentence internal justification (for my eyes only) explaining the specific link between the article's content and the client's persona.
-Return your response as a single, valid JSON array.
-The JSON array must contain 5 objects. Each object must have only these keys: "id", "title", "summary", "reason".
-Use the exact "id" and "title" provided for each article in the context.
-Here is the context: {context_block}
+My user's persona is: "{user_persona_text}"
+
+Based *only* on the user's persona and the 5 articles provided below, do the following:
+
+1.  For each article, write a single, **crisp "summary" sentence (max 20-25 words)**. This sentence must capture the absolute core takeaway or most impactful point of the article. It should subtly align with the user's interests but feel like a standalone, objective insight. **Do not mention the user or their persona.** Avoid hyphens and robotic phrasing. Use strong verbs.
+2.  For each article, write a "reason" sentence (1-2 sentences). This is an internal justification explaining the specific link between the article's core takeaway and the user's persona.
+3.  Return your response as a single, valid JSON array.
+4.  The JSON array must contain 5 objects. Each object must have *only* these keys: "id", "title", "summary", "reason".
+5.  Use the exact "id" and "title" provided for each article in the context.
+
+**Examples of desired crisp summary style:**
+
+* *Article about cricket redemption:* "Mental resilience proves key as cricket teams navigate the high-stakes pressure of seeking redemption after major setbacks."
+* *Article about new MLOps tool:* "A new open-source framework aims to significantly simplify the deployment pipeline for large language models."
+* *Article about sustainable travel in Europe:* "Mindful travel choices are gaining momentum, potentially reshaping the future of tourism across popular European destinations."
+
+**Here is the context for the 5 articles you need to process:**
+{context_block}
 """
         # --- END NEW PROMPT ---
 

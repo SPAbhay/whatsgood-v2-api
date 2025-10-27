@@ -38,7 +38,7 @@ def get_iso_date(published_str):
     except (ValueError, TypeError):
         return datetime.now().isoformat()
     
-# LAMBDA HANDLER
+
 def ingest(event, context):
     """
     This is the main function that AWS Lambda will call.

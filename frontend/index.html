@@ -140,17 +140,28 @@
     </div>
 
     <template id="article-template">
-        <div class="swipe-card relative" data-id=""> <div class="card-content p-5 flex-1 overflow-y-auto"> <div class="flex justify-between items-start mb-2"> <span class="industry-tag text-xs font-medium bg-blue-900 text-blue-200 py-1 px-2 rounded-full uppercase"></span>
+        <div class="swipe-card relative" data-id="">
+            <div class="card-content p-5 flex-1 overflow-y-auto">
+                <div class="flex justify-between items-start mb-2">
+                    <span class="industry-tag text-xs font-medium bg-blue-900 text-blue-200 py-1 px-2 rounded-full uppercase"></span>
                     <span class="published-date text-xs text-gray-500 text-right"></span>
                 </div>
-                <h3 class="article-title text-xl font-semibold text-white mb-3 leading-tight"></h3> <p class="article-summary text-gray-300 text-base"></p> <button class="reason-tooltip-trigger absolute bottom-4 right-4 text-gray-500 hover:text-blue-400 focus:outline-none"
-                        data-tooltip="">
+                <h3 class="article-title text-xl font-semibold text-white mb-3 leading-tight"></h3>
+                <p class="article-summary text-gray-300 text-base"></p>
+                <button class="reason-tooltip-trigger absolute bottom-4 right-4 text-gray-500 hover:text-blue-400 focus:outline-none" data-tooltip="">
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
                 </button>
             </div>
+
             <div class="like-badge">LIKE</div>
             <div class="dislike-badge">NOPE</div>
-            <div class="expanded-content hidden"> </div>
+
+            <div class="expanded-content hidden">
+                <div>
+                    <h3 class="expanded-title text-2xl font-bold text-white mb-4"></h3>      <p class="expanded-summary text-gray-300 mb-4"></p>                     <p class="expanded-reason text-gray-400 text-sm italic mb-6 border-l-2 border-blue-500 pl-4"></p> <a href="" target="_blank" rel="noopener noreferrer" class="expanded-link inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition duration-200"> Read Full Article
+                    </a>
+                </div>
+                <button class="close-expanded-btn mt-6 text-gray-400 hover:text-white self-center">Close</button> </div>
         </div>
     </template>
 
@@ -375,10 +386,10 @@ function createCardElement(article) {
 
     // Populate expanded view (Unchanged)
     const expandedContent = card.querySelector('.expanded-content');
-    expandedContent.querySelector('h3').textContent = article.title;
-    expandedContent.querySelector('p:first-of-type').textContent = article.summary;
-    expandedContent.querySelector('p:last-of-type').textContent = article.reason || '';
-    expandedContent.querySelector('a').href = article.url;
+    expandedContent.querySelector('.expanded-title').textContent = article.title; 
+    expandedContent.querySelector('.expanded-summary').textContent = article.summary; 
+    expandedContent.querySelector('.expanded-reason').textContent = article.reason || ''; 
+    expandedContent.querySelector('.expanded-link').href = article.url; 
 
     card.querySelector('.card-content').addEventListener('click', () => { /* ... expand logic ... */ });
     card.querySelector('.close-expanded-btn').addEventListener('click', (e) => { /* ... close logic ... */ });

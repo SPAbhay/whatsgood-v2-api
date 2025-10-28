@@ -99,6 +99,15 @@ display: -webkit-box;
 -webkit-line-clamp: 2; /* number of lines to show */
 -webkit-box-orient: vertical;
 }
+
+/* NEW: Style for footer interaction hover */
+.interaction-item {
+    transition: transform 0.2s ease, background-color 0.2s ease;
+}
+.interaction-item:hover {
+    transform: scale(1.03);
+    background-color: #374151; /* bg-gray-700 */
+}
 </style>
 </head>
 
@@ -143,13 +152,13 @@ Save & Start
 <p>Swipe right to <span class="text-green-400 font-semibold">like</span>, left to <span class="text-red-400 font-semibold">dislike</span>. Tap a card to read more.</p>
 </div>
 
-<div id="recommendations-container" class="hidden w-full">
+<div id="recommendations-container" class="hidden w-full relative">
 
 <div id="card-counter" class="text-center text-gray-500 text-sm mb-2 hidden"></div>
 
-<div id="card-stack" class="card-stack">
-<div id="loading-spinner" class="spinner absolute top-1/2 left-1/2 -mt-4 -ml-4"></div>
+<div id="loading-spinner" class="spinner absolute top-1/2 left-1/2 -mt-4 -ml-4 z-50"></div>
 
+<div id="card-stack" class="card-stack">
 <div id="end-of-stack" class="hidden text-center text-gray-400 p-8">
 <h3 class="text-2xl font-semibold mb-4">You're all caught up!</h3>
 <p class="mb-6">You've seen all available recommendations. Check back later for more.</p>
@@ -298,9 +307,6 @@ async postInteraction(articleId, interactionType) {
 return this.request('/interact', 'POST', { user_id: this.userId, article_id: articleId, interaction_type: interactionType });
 }
 
-// *** THIS IS THE FIX ***
-// I removed the HTML comment that was here.
-// MODIFIED: request method to throw specific 403 error
 async request(endpoint, method, body = null, unauthData = null) {
 const headers = { 'Content-Type': 'application/json' };
 if (this.apiKey) {
@@ -486,24 +492,31 @@ endOfStack.querySelector('p').textContent = `Error: ${err.message}`;
 }
 }
 
+// MODIFIED: renderCardStack to fix overlap
 function renderCardStack() {
-currentArticles.reverse().forEach((article, index) => {
-const card = createCardElement(article);
-card.style.zIndex = index;
-card.style.transform = `translateY(${index * -10}px)`;
-cardStack.appendChild(card);
-});
+    const total = currentArticles.length; // Get total cards
+    currentArticles.reverse().forEach((article, index) => {
+        const card = createCardElement(article);
+        card.style.zIndex = index;
 
-updateCardCounter(); // NEW
+        // MODIFIED: Top card (index = total - 1) will be at 0px.
+        // Bottom card (index = 0) will be at (total - 1) * 10px.
+        const translateY = (total - 1 - index) * 10;
+        card.style.transform = `translateY(${translateY}px)`;
 
-const topCard = cardStack.lastChild;
-if (topCard) {
-initSwipe(topCard);
+        cardStack.appendChild(card);
+    });
 
-// NEW: Add button listeners
-likeBtn.onclick = () => triggerSwipe(topCard, 'right');
-dislikeBtn.onclick = () => triggerSwipe(topCard, 'left');
-}
+    updateCardCounter(); // NEW
+
+    const topCard = cardStack.lastChild;
+    if (topCard) {
+        initSwipe(topCard);
+
+        // NEW: Add button listeners
+        likeBtn.onclick = () => triggerSwipe(topCard, 'right');
+        dislikeBtn.onclick = () => triggerSwipe(topCard, 'left');
+    }
 }
 
 // NEW: Function to update card counter
@@ -597,7 +610,8 @@ triggerSwipe(card, direction); // Call the new function
 } else {
 // Return to stack
 card.style.transition = 'transform 0.3s ease'; // Add transition back
-card.style.transform = `translateY(${parseInt(card.style.zIndex) * -10}px)`;
+// MODIFIED: Snap back to 0px (top of stack)
+card.style.transform = `translateY(0px)`;
 }
 });
 }
@@ -628,6 +642,9 @@ updateCardCounter(); // Update "2 of 5"
 const nextCard = cardStack.lastChild;
 if (nextCard) {
 initSwipe(nextCard);
+// MODIFIED: Add animation for next card popping up
+nextCard.style.transition = 'transform 0.2s ease-out';
+nextCard.style.transform = 'translateY(0px)';
 // Re-bind buttons to the new top card
 likeBtn.onclick = () => triggerSwipe(nextCard, 'right');
 dislikeBtn.onclick = () => triggerSwipe(nextCard, 'left');
@@ -660,15 +677,16 @@ const icon = isLike ? '👍' : '👎';
 const typeText = isLike ? 'Like' : 'Dislike';
 
 const el = document.createElement('div');
-el.className = `flex-shrink-0 w-48 p-3 bg-gray-800 rounded-md border-l-4 ${color}`;
+// MODIFIED: Added 'interaction-item' class
+el.className = `interaction-item flex-shrink-0 w-48 p-3 bg-gray-800 rounded-md border-l-4 ${color}`;
 el.title = title; // Add full title for hover
 el.innerHTML = `
 <div class="text-sm font-semibold truncate mb-1">${icon} ${typeText}</div>
 <div class="text-xs text-gray-400 truncate-2-lines">${title}</div>
 `;
 
-// Append to show the most recent one at the end of the list
-recentInteractions.append(el);
+// MODIFIED: Prepend to show the most recent one at the start (left)
+recentInteractions.prepend(el);
 }
 
 // MODIFIED: renderRecentInteractions to use new function and style
@@ -682,8 +700,10 @@ return;
 noInteractions.classList.add('hidden');
 
 // API returns [Newest, ..., Oldest]
-// We want to show [Oldest, ..., Newest]
-// So we reverse the list, then append each one.
+// We want to show [Oldest, ..., Newest] when we load
+// So we reverse the list, then prepend each one.
+// [Oldest, ... Newest] -> prepend(Oldest) -> prepend(Newest)
+// Result: [Newest, ..., Oldest] (Correct for loading)
 interactions.reverse().forEach(item => {
 addInteractionToFooter(item.articles.title, item.interaction_type);
 });

@@ -302,7 +302,7 @@ async postInteraction(articleId, interactionType) {
 return this.request('/interact', 'POST', { user_id: this.userId, article_id: articleId, interaction_type: interactionType });
 }
 
-// async request(endpoint, method, body = null, unauthData = null) {
+async request(endpoint, method, body = null, unauthData = null) {
 const headers = { 'Content-Type': 'application/json' };
 if (this.apiKey) {
 headers['x-api-key'] = this.apiKey;

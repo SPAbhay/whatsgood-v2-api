@@ -91,7 +91,7 @@ flex-direction: column;
 justify-content: space-between;
 }
 
-/* */
+/* NEW: Style for 2-line truncation in footer */
 .truncate-2-lines {
 overflow: hidden;
 text-overflow: ellipsis;
@@ -125,12 +125,10 @@ Login
 
 <main class="flex-1 flex flex-col items-center justify-center p-4 overflow-hidden">
 
--->
 <div id="persona-setup" class="w-full max-w-md p-6 bg-gray-800 rounded-lg shadow-lg text-center hidden">
 <h2 class="text-2xl font-semibold mb-4">Welcome!</h2>
 <p class="text-gray-300 mb-6">Tell us about yourself to get personalized news.</p>
 
--->
 <input id="interest-input" type="text" class="w-full p-3 bg-gray-700 text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4" placeholder="Your Main Field of Interest (e.g., 'AI')">
 
 <textarea id="persona-input" rows="3" class="w-full p-3 bg-gray-700 text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Your Persona (e.g., 'An AI engineer in London...')"></textarea>
@@ -141,24 +139,20 @@ Save & Start
 </button>
 </div>
 
--->
 <div id="app-intro" class="w-full max-w-md p-4 text-center text-gray-400 text-sm hidden">
 <p>Swipe right to <span class="text-green-400 font-semibold">like</span>, left to <span class="text-red-400 font-semibold">dislike</span>. Tap a card to read more.</p>
 </div>
 
 <div id="recommendations-container" class="hidden w-full">
 
--->
 <div id="card-counter" class="text-center text-gray-500 text-sm mb-2 hidden"></div>
 
 <div id="card-stack" class="card-stack">
 <div id="loading-spinner" class="spinner absolute top-1/2 left-1/2 -mt-4 -ml-4"></div>
 
--->
 <div id="end-of-stack" class="hidden text-center text-gray-400 p-8">
 <h3 class="text-2xl font-semibold mb-4">You're all caught up!</h3>
 <p class="mb-6">You've seen all available recommendations. Check back later for more.</p>
--->
 <p id="quota-message" class="text-yellow-400 text-sm mb-6 hidden"></p>
 <button id="refresh-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-200">
 Check for more
@@ -166,7 +160,6 @@ Check for more
 </div>
 </div>
 
--->
 <div id="swipe-controls" class="mt-4 flex justify-center items-center space-x-12 hidden">
 <button id="dislike-btn" class="w-16 h-16 rounded-full bg-gray-800 border-2 border-red-500 text-red-500 flex items-center justify-center text-3xl font-bold shadow-lg transform active:scale-90 transition-transform">
 &times;
@@ -231,7 +224,9 @@ const API_BASE_URL = "https://api-whatsgood.abhay-arora.com";
 let API_KEY = null;
 let USER_ID = null;
 let currentArticles = [];
-let totalCardsInStack = 0; // // === DOM ELEMENTS ===
+let totalCardsInStack = 0; // NEW: Card stack counter
+
+// === DOM ELEMENTS ===
 const loginScreen = document.getElementById('login-screen');
 const dashboardScreen = document.getElementById('dashboard-screen');
 const apiKeyInput = document.getElementById('api-key-input');
@@ -251,7 +246,8 @@ const recentInteractions = document.getElementById('recent-interactions');
 const noInteractions = document.getElementById('no-interactions');
 const articleTemplate = document.getElementById('article-template');
 
-// const interestInput = document.getElementById('interest-input');
+// NEW: DOM Elements
+const interestInput = document.getElementById('interest-input');
 const appIntro = document.getElementById('app-intro');
 const cardCounter = document.getElementById('card-counter');
 const swipeControls = document.getElementById('swipe-controls');
@@ -302,6 +298,9 @@ async postInteraction(articleId, interactionType) {
 return this.request('/interact', 'POST', { user_id: this.userId, article_id: articleId, interaction_type: interactionType });
 }
 
+// *** THIS IS THE FIX ***
+// I removed the HTML comment that was here.
+// MODIFIED: request method to throw specific 403 error
 async request(endpoint, method, body = null, unauthData = null) {
 const headers = { 'Content-Type': 'application/json' };
 if (this.apiKey) {
@@ -352,7 +351,8 @@ dashboardScreen.classList.add('hidden');
 loginScreen.classList.remove('hidden');
 }
 
-// async function showDashboard() {
+// MODIFIED: showDashboard to handle new UI elements and errors
+async function showDashboard() {
 loginScreen.classList.add('hidden');
 dashboardScreen.classList.remove('hidden');
 
@@ -414,7 +414,8 @@ loginError.textContent = err.message;
 }
 }
 
-// async function handleSavePersona() {
+// MODIFIED: handleSavePersona to include interest field
+async function handleSavePersona() {
 const interest = interestInput.value;
 const persona = personaInput.value;
 if (!interest || !persona) {
@@ -433,7 +434,8 @@ alert(`Error saving persona: ${err.message}`);
 }
 }
 
-// async function loadRecommendations() {
+// MODIFIED: loadRecommendations to handle new UI and errors
+async function loadRecommendations() {
 cardStack.innerHTML = ''; // Clear old cards
 endOfStack.classList.add('hidden');
 cardCounter.classList.add('hidden'); // Hide counter
@@ -498,12 +500,14 @@ const topCard = cardStack.lastChild;
 if (topCard) {
 initSwipe(topCard);
 
-// likeBtn.onclick = () => triggerSwipe(topCard, 'right');
+// NEW: Add button listeners
+likeBtn.onclick = () => triggerSwipe(topCard, 'right');
 dislikeBtn.onclick = () => triggerSwipe(topCard, 'left');
 }
 }
 
-// function updateCardCounter() {
+// NEW: Function to update card counter
+function updateCardCounter() {
 const remainingCards = cardStack.querySelectorAll('.swipe-card').length;
 if (remainingCards > 0 && totalCardsInStack > 0) {
 cardCounter.textContent = `Card ${totalCardsInStack - remainingCards + 1} of ${totalCardsInStack}`;
@@ -550,7 +554,8 @@ expandedContent.classList.add('hidden');
 return card;
 }
 
-// function initSwipe(card) {
+// MODIFIED: initSwipe to be cleaner and call triggerSwipe
+function initSwipe(card) {
 const gesture = new Hammer(card);
 const screenWidth = window.innerWidth;
 
@@ -597,7 +602,8 @@ card.style.transform = `translateY(${parseInt(card.style.zIndex) * -10}px)`;
 });
 }
 
-// function triggerSwipe(card, direction) {
+// NEW: Function to handle swipe animation and logic
+function triggerSwipe(card, direction) {
 if (card.classList.contains('swiping')) return; // Prevent double-swipe
 card.classList.add('swiping');
 
@@ -644,7 +650,8 @@ console.error(`Failed to post interaction: ${err.message}`);
 }
 }
 
-// function addInteractionToFooter(title, interactionType) {
+// NEW: Function to add a single interaction to the footer
+function addInteractionToFooter(title, interactionType) {
 noInteractions.classList.add('hidden'); // Hide "no interactions" message
 
 const isLike = interactionType === 'like';
@@ -664,7 +671,8 @@ el.innerHTML = `
 recentInteractions.append(el);
 }
 
-// function renderRecentInteractions(interactions) {
+// MODIFIED: renderRecentInteractions to use new function and style
+function renderRecentInteractions(interactions) {
 recentInteractions.innerHTML = ''; // Clear
 if (!interactions || interactions.length === 0) {
 noInteractions.classList.remove('hidden');
@@ -681,7 +689,8 @@ addInteractionToFooter(item.articles.title, item.interaction_type);
 });
 }
 
-// function handleQuotaExceeded() {
+// NEW: Function to handle 403 Quota Errors
+function handleQuotaExceeded() {
 console.warn("Quota exceeded (403).");
 loadingSpinner.classList.add('hidden');
 cardStack.innerHTML = ''; // Clear stack

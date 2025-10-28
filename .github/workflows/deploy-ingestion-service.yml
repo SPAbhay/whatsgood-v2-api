@@ -54,6 +54,7 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::438886543377:role/github-actions-whatsgood-deploy-role # Paste your IAM Role ARN here
           aws-region: ${{ env.AWS_REGION }}
+          role-duration-seconds: 7200
 
       # Step 5: Log in to Amazon ECR
       # Uses the credentials from the previous step to log Docker into your ECR registry

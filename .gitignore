@@ -18,11 +18,6 @@ ENV/
 env.bak/
 venv.bak/
 
-# --- ML Models ---
-# Ignore downloaded model directories within services
-# This correctly ignores services/ingestion-service/model/
-services/*/model/
-
 # --- IDE/Editor ---
 # Ignore editor configuration files
 .vscode/

@@ -16,11 +16,8 @@ darkMode: 'class'
 .card-stack {
 position: relative;
 width: 90vw;
-/* MODIFIED: Reduced height again */
 height: 50vh; 
-/* MODIFIED: Reduced max-width */
 max-width: 380px;
-/* MODIFIED: Reduced max-height again */
 max-height: 380px; 
 margin: auto;
 }
@@ -129,7 +126,7 @@ display: -webkit-box;
 <p class="text-lg text-gray-400 mb-8">Enter your Beta API Key to log in.</p>
 <div class="bg-gray-800 rounded-lg p-6 shadow-lg">
 <input id="api-key-input" type="password" class="w-full p-3 bg-gray-700 text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your API Key">
-<button id="login-btn" class="mt-4 w-full bg-blue-600 hover:bg-blue-7Git 0 text-white font-bold py-3 px-4 rounded-md transition duration-200">
+<button id="login-btn" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-200">
 Login
 </button>
 <p id="login-error" class="text-red-400 text-sm mt-3"></p>
@@ -143,7 +140,13 @@ Login
 <button id="logout-btn" class="text-gray-400 hover:text-white">Logout</button>
 </header>
 
-<main class="flex-1 flex flex-col items-center justify-center p-4 overflow-hidden">
+<!-- 
+    MODIFIED:
+    - Changed justify-center to justify-start (aligns content to top)
+    - Changed overflow-hidden to overflow-y-auto (allows scrolling)
+    - Added pt-12 and pb-8 for vertical padding
+-->
+<main class="flex-1 flex flex-col items-center justify-start p-4 pt-12 pb-8 overflow-y-auto">
     
     <div id="persona-setup" class="w-full max-w-md p-6 bg-gray-800 rounded-lg shadow-lg text-center hidden">
     <h2 class="text-2xl font-semibold mb-4">Welcome!</h2>
@@ -167,7 +170,6 @@ Login
 
     <div id="card-counter" class="text-center text-gray-500 text-sm mb-2 hidden"></div>
 
-    <!-- MODIFIED: Spinner container with text -->
     <div id="loading-container" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex flex-col items-center hidden">
         <div id="loading-spinner" class="spinner"></div>
         <p id="loading-text" class="text-gray-400 text-sm mt-3">Fetching your news...</p>
@@ -177,7 +179,6 @@ Login
         <!-- Cards go here -->
     </div>
 
-    <!-- MODIFIED: Increased margin-top from mt-12 to mt-16 -->
     <div id="swipe-controls" class="mt-16 flex justify-center items-center space-x-12 hidden">
     <button id="dislike-btn" class="w-16 h-16 rounded-full bg-gray-800 border-2 border-red-500 text-red-500 flex items-center justify-center text-3xl font-bold shadow-lg transform active:scale-90 transition-transform">
     &times;
@@ -265,7 +266,6 @@ const personaInput = document.getElementById('persona-input');
 const savePersonaBtn = document.getElementById('save-persona-btn');
 const recsContainer = document.getElementById('recommendations-container');
 const cardStack = document.getElementById('card-stack');
-// MODIFIED: Get the new container
 const loadingContainer = document.getElementById('loading-container');
 const endOfStack = document.getElementById('end-of-stack');
 const refreshBtn = document.getElementById('refresh-btn');
@@ -390,7 +390,7 @@ footerDashboard.classList.add('hidden');
 appIntro.classList.add('hidden'); 
 personaSetup.classList.remove('hidden');
 endOfStack.classList.add('hidden'); 
-loadingContainer.classList.add('hidden'); // MODIFIED: Hide
+loadingContainer.classList.add('hidden'); 
 } else {
 // Existing user: Show recs
 const parts = me.base_persona.split(' | ');
@@ -463,7 +463,6 @@ cardCounter.classList.add('hidden');
 swipeControls.classList.add('hidden'); 
 appIntro.classList.add('hidden'); 
 recsContainer.classList.remove('hidden'); 
-// MODIFIED: Show the whole loading container
 loadingContainer.classList.remove('hidden');
 
 // Reset refresh button state
@@ -486,7 +485,6 @@ dislikeBtn = newDislikeBtn;
 try {
 const data = await api.getRecommendations();
 currentArticles = data.recommendations;
-// MODIFIED: Hide the whole loading container
 loadingContainer.classList.add('hidden');
 
 if (currentArticles.length > 0) {
@@ -503,7 +501,6 @@ endOfStack.querySelector('p').textContent = "You're all caught up! Check back la
 }
 } catch (err) {
 console.error(err);
-// MODIFIED: Hide the whole loading container
 loadingContainer.classList.add('hidden');
 if (err.message.includes('403')) {
 handleQuotaExceeded(); 
@@ -709,7 +706,6 @@ addInteractionToFooter(item.articles.title, item.interaction_type);
 
 function handleQuotaExceeded() {
 console.warn("Quota exceeded (403).");
-// MODIFIED: Hide the whole loading container
 loadingContainer.classList.add('hidden');
 cardStack.innerHTML = ''; 
 swipeControls.classList.add('hidden');

@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from supabase import create_client, Client
 from pinecone import Pinecone, ServerlessSpec
-from sentence_transformers import SentenceTransformer
+# from sentence_transformers import SentenceTransformer
 from rss_feeds import FEEDS_TO_SCRAPE
 import time
 from datetime import datetime
@@ -68,6 +68,7 @@ def ingest(event, context):
         print("Handler: Pinecone index obtained.")
     
     if bi_encoder is None:
+        from sentence_transformers import SentenceTransformer
         print("Handler: Cold start. Loading bi-encoder model: all-MiniLM-L6-v2...")
         bi_encoder = SentenceTransformer(model_path)
         print("Handler: Bi-encoder model loaded.")

@@ -6,9 +6,10 @@ from dotenv import load_dotenv
 from supabase import create_client, Client
 from pinecone import Pinecone, ServerlessSpec
 # from sentence_transformers import SentenceTransformer
+from newspaper import Article
+from datetime import datetime, timedelta, timezone
 from rss_feeds import FEEDS_TO_SCRAPE
 import time
-from datetime import datetime
 from dateutil import parser as date_parser
 
 # --- MODIFICATION ---
@@ -78,6 +79,9 @@ def ingest(event, context):
 
     print("Starting ingestion cycle...")
     new_articles_ingested = 0
+    skipped_future = 0
+    skipped_old = 0
+    skipped_failed = 0
 
     for industry, feed_list in FEEDS_TO_SCRAPE["feeds"].items():
         print(f"--- Parsing industry: {industry} ---")
@@ -95,34 +99,63 @@ def ingest(event, context):
                     if not article_url:
                         continue
 
-                    # --- A. Check for Duplicates ---
+                    # --- A. Check for Duplicates (Unchanged) ---
                     response = supabase.table('articles').select('id').eq('article_url', article_url).execute()
-                    
                     if len(response.data) > 0:
                         continue
 
-                    # --- B. Process New Article ---
-                    print(f"NEW ARTICLE FOUND: {entry.title}")
+                    # --- B. Process New Article (THE NEW LOGIC) ---
+                    # Use newspaper3k to download and parse the full article
+                    article = Article(article_url)
+                    article.download()
+                    article.parse()
                     
-                    # 1. Get Metadata
-                    title = entry.title
-                    content_html = entry.get('summary', entry.get('content', [{}])[0].get('value', ''))
-                    content = clean_content(content_html)
-                    published_date = get_iso_date(entry.get('published', ''))
+                    # 1. Get Metadata (Now reliable)
+                    content = article.text
+                    title = article.title
+                    published_date_dt = article.publish_date
 
-                    if not content:
-                        print("Article has no content, skipping.")
+                    # We MUST have content and a title
+                    if not content or not title:
+                        print(f"Failed to parse content/title, skipping: {article_url}")
+                        skipped_failed += 1
                         continue
 
-                    # 2. Create Bi-Encoder Embedding
+                    # 2. Fix Date Issues (Your request)
+                    if not published_date_dt:
+                        # Fallback to feed date if newspaper fails
+                        published_date_dt = date_parser.parse(entry.get('published', ''))
+                    
+                    # Ensure timezone-aware
+                    if published_date_dt.tzinfo is None:
+                        published_date_dt = published_date_dt.replace(tzinfo=timezone.utc)
+
+                    # --- Date Guardrails ---
+                    now = datetime.now(timezone.utc)
+                    if published_date_dt > (now + timedelta(days=1)):
+                        print(f"Article has future date, skipping: {title}")
+                        skipped_future += 1
+                        continue
+                        
+                    if published_date_dt < (now - timedelta(days=30)):
+                        print(f"Article older than 30 days, skipping: {title}")
+                        skipped_old += 1
+                        continue
+                    
+                    published_date_iso = published_date_dt.isoformat()
+                    # --- End Date Fixes ---
+
+                    print(f"NEW ARTICLE FOUND: {title}")
+
+                    # 3. Create Bi-Encoder Embedding (Unchanged)
                     vector = bi_encoder.encode(content).tolist() 
                     
-                    # 3. Save to Supabase
+                    # 4. Save to Supabase (Unchanged)
                     new_article_data = {
                         'article_url': article_url,
                         'title': title,
                         'content': content,
-                        'published_date': published_date,
+                        'published_date': published_date_iso,
                         'industry': industry  
                     }
                     insert_response = supabase.table('articles').insert(new_article_data).execute()
@@ -133,19 +166,24 @@ def ingest(event, context):
                         
                     new_article_id = insert_response.data[0]['id']
                     
-                    # 4. Save to Pinecone
+                    # 5. Save to Pinecone (Unchanged)
                     pinecone_index.upsert(
                         vectors=[(new_article_id, vector)],
                     )
                     
                     new_articles_ingested += 1
-                    
-                    time.sleep(0.5) 
+                    time.sleep(0.5) # Unchanged
 
                 except Exception as e:
                     print(f"Error processing entry {entry.get('link', 'NO_LINK')}: {e}")
+                    skipped_failed += 1
 
-    print(f"--- Ingestion cycle complete. Ingested {new_articles_ingested} new articles. ---")
+    print(f"--- Ingestion cycle complete. ---")
+    print(f"Ingested: {new_articles_ingested} new articles.")
+    print(f"Skipped (Future Date): {skipped_future}")
+    print(f"Skipped (Too Old): {skipped_old}")
+    print(f"Skipped (Failed Parse): {skipped_failed}")
+    
     return {
         'statusCode': 200,
         'body': f'Ingested {new_articles_ingested} new articles.'

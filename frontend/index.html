@@ -12,7 +12,9 @@
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
     <style>
-        /* ... (All your existing <style> content remains unchanged) ... */
+        /* ... (Your existing styles for spinner, badges, etc. remain) ... */
+        
+        /* === MODIFIED STYLES === */
         .card-stack {
             position: relative;
             width: 90vw;
@@ -20,6 +22,8 @@
             max-width: 380px;
             max-height: 380px; 
             margin: auto;
+            /* This creates the 3D stack perspective */
+            perspective: 1000px;
         }
         .swipe-card {
             position: absolute;
@@ -28,67 +32,27 @@
             border-radius: 1rem;
             background: #1F2937; /* bg-gray-800 */
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.15);
+            /* Added opacity and scale to the transition */
             transition: transform 0.3s ease, opacity 0.3s ease;
             cursor: grab;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            /* Prevents flickering on transforms */
+            backface-visibility: hidden;
         }
         .swipe-card.dragging {
             transition: none;
             cursor: grabbing;
         }
-        .swipe-card .like-badge, .swipe-card .dislike-badge {
-            position: absolute;
-            top: 20px;
-            font-size: 2rem;
-            font-weight: bold;
-            text-transform: uppercase;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            opacity: 0;
-            transition: opacity 0.2s ease;
+        /* Style for the generative loading text */
+        #loading-text {
+            transition: opacity 0.4s ease-in-out;
+            min-height: 40px; /* Prevents layout shift */
+            display: inline-block;
+            text-align: center;
         }
-        .swipe-card .like-badge {
-            left: 20px;
-            color: #10B981; /* green-500 */
-            border: 4px solid #10B981;
-            transform: rotate(-20deg);
-        }
-        .swipe-card .dislike-badge {
-            right: 20px;
-            color: #EF4444; /* red-500 */
-            border: 4px solid #EF4444;
-            transform: rotate(20deg);
-        }
-        .swipe-card.dragging .like-badge {
-            opacity: var(--like-opacity, 0);
-        }
-        .swipe-card.dragging .dislike-badge {
-            opacity: var(--dislike-opacity, 0);
-        }
-        .spinner {
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top: 4px solid #fff;
-            width: 32px;
-            height: 32px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .expanded-content {
-            height: 100%;
-            overflow-y: auto;
-            background: rgba(0,0,0,0.8);
-            backdrop-filter: blur(10px);
-            padding: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
+        /* ... (Rest of your existing styles: .like-badge, .spinner, .expanded-content, etc. remain unchanged) ... */
         .truncate-2-lines {
             overflow: hidden;
             text-overflow: ellipsis;
@@ -138,6 +102,7 @@
         </header>
 
         <main class="flex-1 flex flex-col items-center justify-start p-4 pt-12 pb-8 overflow-y-auto">
+            
             <div id="persona-setup" class="w-full max-w-md p-6 bg-gray-800 rounded-lg shadow-lg text-center hidden">
                 <h2 class="text-2xl font-semibold mb-4">Welcome!</h2>
                 <p class="text-gray-300 mb-6">Tell us about yourself to get personalized news.</p>
@@ -154,12 +119,16 @@
             </div>
         
             <div id="recommendations-container" class="hidden w-full relative">
-                <div id="card-counter" class="text-center text-gray-500 text-sm mb-2 hidden"></div>
-                <div id="loading-container" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex flex-col items-center hidden">
+                
+                <div id="card-counter" class="text-center text-gray-500 text-sm mb-1 h-5"></div>
+                <div id="swipe-feedback" class="text-center text-blue-300 text-sm mb-2 h-5 transition-opacity duration-300 opacity-0"></div>
+
+                <div id="loading-container" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex flex-col items-center hidden" style="width: 300px;">
                     <div id="loading-spinner" class="spinner"></div>
-                    <p id="loading-text" class="text-gray-400 text-sm mt-3">Fetching your news...</p>
+                    <p id="loading-text" class="text-gray-400 text-sm mt-4"></p>
                 </div>
                 <div id="card-stack" class="card-stack"></div>
+                
                 <div id="swipe-controls" class="mt-16 flex justify-center items-center space-x-12 hidden">
                     <button id="dislike-btn" class="w-16 h-16 rounded-full bg-gray-800 border-2 border-red-500 text-red-500 flex items-center justify-center text-3xl font-bold shadow-lg transform active:scale-90 transition-transform">&times;</button>
                     <div class="text-gray-500 text-sm flex items-center space-x-2">
@@ -171,15 +140,15 @@
                 </div>
             </div>
             
-            <div id="end-of-stack" class="hidden text-center text-gray-400 p-8">
-                <h3 class="text-2xl font-semibold mb-4">You're all caught up!</h3>
-                <p class="mb-6">You've seen all available recommendations. Check back later for more.</p>
+            <div id="end-of-stack" class="hidden text-center text-gray-400 p-8 max-w-md mx-auto">
+                <h3 class="text-2xl font-semibold mb-4">Your Daily Briefing is Ready</h3>
+                <p class="mb-6">We believe in **quality over quantity**. Instead of an infinite scroll, we deliver your top 5, most relevant articles. Your feedback helps sharpen tomorrow's briefing.</p>
                 <p id="quota-message" class="text-yellow-400 text-sm mb-6 hidden"></p>
                 <button id="refresh-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-200">
                     Check for more
                 </button>
             </div>
-        </main>
+            </main>
 
         <footer id="footer-dashboard" class="p-4 border-t border-gray-700 hidden w-full">
             <h3 class="text-sm font-semibold text-gray-400 uppercase mb-3">Recent Interactions</h3>
@@ -188,7 +157,6 @@
             </div>
         </footer>
     </div>
-
     <div id="persona-edit-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 hidden">
         <div class="w-full max-w-md p-6 bg-gray-800 rounded-lg shadow-lg">
             <h2 class="text-2xl font-semibold mb-4">Edit Your Persona</h2>
@@ -245,39 +213,28 @@
 // === CONFIG === (Unchanged)
 const API_BASE_URL = "https://api-whatsgood.abhay-arora.com";
 
-// === STATE === (Unchanged)
+// === STATE ===
 let API_KEY = null;
 let USER_ID = null;
 let currentArticles = [];
 let totalCardsInStack = 0; 
+let loadingInterval = null; // <-- For generative loading text
+let swipeFeedbackTimer = null; // <-- For swipe feedback message
 
-// === DOM ELEMENTS === (Added Modal Elements)
+// === DOM ELEMENTS ===
 const loginScreen = document.getElementById('login-screen');
-const dashboardScreen = document.getElementById('dashboard-screen');
-const apiKeyInput = document.getElementById('api-key-input');
-const loginBtn = document.getElementById('login-btn');
-const loginError = document.getElementById('login-error');
-const logoutBtn = document.getElementById('logout-btn');
-const personaSetup = document.getElementById('persona-setup');
-const personaInput = document.getElementById('persona-input');
-const savePersonaBtn = document.getElementById('save-persona-btn');
-const recsContainer = document.getElementById('recommendations-container');
+// ... (all other DOM elements) ...
 const cardStack = document.getElementById('card-stack');
 const loadingContainer = document.getElementById('loading-container');
+const loadingText = document.getElementById('loading-text'); // <-- Get loading text el
 const endOfStack = document.getElementById('end-of-stack');
-const refreshBtn = document.getElementById('refresh-btn');
-const footerDashboard = document.getElementById('footer-dashboard');
-const recentInteractions = document.getElementById('recent-interactions');
-const noInteractions = document.getElementById('no-interactions');
-const articleTemplate = document.getElementById('article-template');
-const interestInput = document.getElementById('interest-input');
-const appIntro = document.getElementById('app-intro');
+// ...
 const cardCounter = document.getElementById('card-counter');
+const swipeFeedback = document.getElementById('swipe-feedback'); // <-- Get swipe feedback el
 const swipeControls = document.getElementById('swipe-controls');
 let likeBtn = document.getElementById('like-btn'); 
 let dislikeBtn = document.getElementById('dislike-btn'); 
-
-// *** NEW MODAL ELEMENTS ***
+// ... (all other DOM elements) ...
 const editPersonaBtn = document.getElementById('edit-persona-btn');
 const personaEditModal = document.getElementById('persona-edit-modal');
 const modalInterestInput = document.getElementById('modal-interest-input');
@@ -288,6 +245,7 @@ const modalSaveBtn = document.getElementById('modal-save-btn');
 
 // === API CLIENT === (Unchanged)
 class ApiClient {
+    // ... (Your entire ApiClient class remains unchanged) ...
     constructor() {
         this.apiKey = localStorage.getItem('whatsgood_api_key');
         this.userId = localStorage.getItem('whatsgood_user_id');
@@ -352,8 +310,9 @@ const api = new ApiClient();
 
 // === APP LOGIC ===
 
-// --- Helper to parse persona ---
+// --- Helper to parse persona --- (Unchanged)
 function splitPersona(basePersona) {
+    // ... (existing function unchanged) ...
     if (!basePersona) return { interest: '', persona: '' };
     const parts = basePersona.split(' | ');
     if (parts.length > 1) {
@@ -362,6 +321,7 @@ function splitPersona(basePersona) {
     return { interest: '', persona: basePersona }; // Fallback
 }
 
+// --- initApp & showLogin --- (Unchanged)
 function initApp() {
     if (api.isLoggedIn()) {
         showDashboard();
@@ -369,13 +329,14 @@ function initApp() {
         showLogin();
     }
 }
-
 function showLogin() {
     dashboardScreen.classList.add('hidden');
     loginScreen.classList.remove('hidden');
 }
 
+// --- showDashboard --- (Unchanged)
 async function showDashboard() {
+    // ... (existing function unchanged) ...
     loginScreen.classList.add('hidden');
     dashboardScreen.classList.remove('hidden');
 
@@ -429,6 +390,7 @@ async function showDashboard() {
     }
 }
 
+// --- handleLogin & handleSavePersona & handleUpdatePersona --- (Unchanged)
 async function handleLogin() {
     // ... (existing function unchanged) ...
     const key = apiKeyInput.value;
@@ -442,7 +404,6 @@ async function handleLogin() {
         loginError.textContent = err.message;
     }
 }
-
 async function handleSavePersona() {
     // ... (existing function unchanged) ...
     const interest = interestInput.value;
@@ -459,22 +420,17 @@ async function handleSavePersona() {
         alert(`Error saving persona: ${err.message}`);
     }
 }
-
-// *** NEW: Handle Persona Update from Modal ***
 async function handleUpdatePersona() {
+    // ... (existing function unchanged) ...
     const interest = modalInterestInput.value;
     const persona = modalPersonaInput.value;
     if (!interest || !persona) {
         alert("Please fill out both your main interest and your persona description.");
         return;
     }
-
     const combinedPersona = `${interest} | ${persona}`;
-    
-    // Show saving state
     modalSaveBtn.disabled = true;
     modalSaveBtn.textContent = "Saving...";
-
     try {
         await api.setPersona(combinedPersona);
         personaEditModal.classList.add('hidden'); // Hide modal
@@ -488,26 +444,63 @@ async function handleUpdatePersona() {
 }
 
 
+// *** MODIFIED: Generative Loading ***
+function startGenerativeLoadingText() {
+    const messages = [
+        "Analyzing your persona and recent swipes...",
+        "Scanning thousands of new articles...",
+        "Re-ranking top candidates just for you...",
+        "Writing your personal briefing..."
+    ];
+    let msgIndex = 0;
+
+    if (loadingInterval) clearInterval(loadingInterval);
+
+    const updateText = () => {
+        loadingText.style.opacity = 0;
+        setTimeout(() => {
+            loadingText.textContent = messages[msgIndex];
+            loadingText.style.opacity = 1;
+            msgIndex = (msgIndex + 1) % messages.length;
+        }, 400); // Wait for fade out
+    };
+
+    updateText(); // Show first message immediately
+    loadingInterval = setInterval(updateText, 2500); // Cycle every 2.5 seconds
+}
+
+function stopGenerativeLoadingText() {
+    if (loadingInterval) {
+        clearInterval(loadingInterval);
+        loadingInterval = null;
+    }
+    loadingText.style.opacity = 0;
+    loadingText.textContent = "";
+}
+
+// *** MODIFIED: loadRecommendations ***
 async function loadRecommendations() {
-    // ... (existing function unchanged) ...
+    // ... (Clear existing state) ...
     cardStack.innerHTML = '';
     endOfStack.classList.add('hidden'); 
     cardCounter.classList.add('hidden'); 
     swipeControls.classList.add('hidden'); 
     appIntro.classList.add('hidden'); 
     recsContainer.classList.remove('hidden'); 
+    
+    // *** START GENERATIVE LOADING ***
     loadingContainer.classList.remove('hidden');
+    startGenerativeLoadingText();
 
+    // ... (Reset buttons and quota messages) ...
     refreshBtn.disabled = false;
-    refreshBtn.textContent = "Check for more";
-    refreshBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    // ...
     const quotaMsgEl = endOfStack.querySelector('#quota-message');
     if (quotaMsgEl) quotaMsgEl.classList.add('hidden');
-
+    // ... (Clone and replace buttons) ...
     const newLikeBtn = likeBtn.cloneNode(true);
     likeBtn.parentNode.replaceChild(newLikeBtn, likeBtn);
     likeBtn = newLikeBtn; 
-
     const newDislikeBtn = dislikeBtn.cloneNode(true);
     dislikeBtn.parentNode.replaceChild(newDislikeBtn, dislikeBtn);
     dislikeBtn = newDislikeBtn; 
@@ -515,7 +508,11 @@ async function loadRecommendations() {
     try {
         const data = await api.getRecommendations();
         currentArticles = data.recommendations;
+        
+        // *** STOP GENERATIVE LOADING ***
+        stopGenerativeLoadingText();
         loadingContainer.classList.add('hidden');
+
         if (currentArticles.length > 0) {
             totalCardsInStack = currentArticles.length; 
             renderCardStack();
@@ -526,10 +523,14 @@ async function loadRecommendations() {
             recsContainer.classList.add('hidden'); 
             appIntro.classList.add('hidden');
             endOfStack.classList.remove('hidden');
-            endOfStack.querySelector('p').textContent = "You're all caught up! Check back later for more.";
+            // *** Use NEW end-of-stack copy ***
+            endOfStack.querySelector('h3').textContent = "Your Daily Briefing is Ready";
+            endOfStack.querySelector('p').textContent = "You're all caught up for now. Your feedback helps sharpen tomorrow's briefing.";
         }
     } catch (err) {
         console.error(err);
+        // *** STOP GENERATIVE LOADING (on error) ***
+        stopGenerativeLoadingText();
         loadingContainer.classList.add('hidden');
         if (err.message.includes('403')) {
             handleQuotaExceeded(); 
@@ -541,24 +542,35 @@ async function loadRecommendations() {
     }
 }
 
+// *** MODIFIED: renderCardStack (for "Popping" effect) ***
 function renderCardStack() {
-    // ... (existing function unchanged) ...
     const total = currentArticles.length; 
     currentArticles.reverse().forEach((article, index) => {
         const card = createCardElement(article);
         card.style.zIndex = index;
+        
+        // Calculate perspective transform
         const translateY = (total - 1 - index) * 10;
-        card.style.transform = `translateY(${translateY}px)`;
+        const scale = 1 - (total - 1 - index) * 0.05;
+        const opacity = 1 - (total - 1 - index) * 0.1;
+
+        const transform = `translateY(${translateY}px) scale(${scale})`;
+        card.style.transform = transform;
+        card.style.opacity = opacity;
+        card.dataset.originalTransform = transform; // Store original state
+        
         cardStack.appendChild(card);
     });
     updateCardCounter(); 
     const topCard = cardStack.lastChild;
     if (topCard) {
+        topCard.style.opacity = 1; // Ensure top card is fully visible
         initSwipe(topCard);
         likeBtn.onclick = () => triggerSwipe(topCard, 'right');
         dislikeBtn.onclick = () => triggerSwipe(topCard, 'left');
     }
 }
+
 
 function updateCardCounter() {
     // ... (existing function unchanged) ...
@@ -572,8 +584,8 @@ function updateCardCounter() {
 }
 
 
+// *** MODIFIED: createCardElement (for "Click to Flip Back") ***
 function createCardElement(article) {
-    // ... (existing function unchanged) ...
     const card = articleTemplate.content.cloneNode(true).firstElementChild;
     card.dataset.id = article.id;
     card.dataset.url = article.url;
@@ -583,27 +595,51 @@ function createCardElement(article) {
     card.querySelector('.article-title').textContent = article.title;
     card.querySelector('.article-summary').textContent = article.summary;
     card.querySelector('.article-reason').textContent = article.reason; 
+    
+    const cardContent = card.querySelector('.card-content');
     const expandedContent = card.querySelector('.expanded-content');
+    const closeBtn = card.querySelector('.close-expanded-btn');
+    const readLink = expandedContent.querySelector('a');
+
     expandedContent.querySelector('h3').textContent = article.title;
     expandedContent.querySelector('p:first-of-type').textContent = article.summary;
     expandedContent.querySelector('p:last-of-type').textContent = article.reason;
     expandedContent.querySelector('a').href = article.url;
-    card.querySelector('.card-content').addEventListener('click', () => {
+
+    // Open logic
+    cardContent.addEventListener('click', () => {
         if (!card.classList.contains('dragging')) {
-            card.querySelector('.card-content').classList.add('hidden');
+            cardContent.classList.add('hidden');
             expandedContent.classList.remove('hidden');
         }
     });
-    card.querySelector('.close-expanded-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        card.querySelector('.card-content').classList.remove('hidden');
+
+    // Close logic
+    const closeExpandedView = () => {
+        cardContent.classList.remove('hidden');
         expandedContent.classList.add('hidden');
+    };
+
+    closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeExpandedView();
     });
+
+    // *** NEW: Click expanded view to close ***
+    expandedContent.addEventListener('click', (e) => {
+        // Only close if the click is NOT on the "Read Full Article" link
+        if (e.target !== readLink && !readLink.contains(e.target)) {
+            e.stopPropagation();
+            closeExpandedView();
+        }
+    });
+
     return card;
 }
 
+
+// *** MODIFIED: initSwipe (for "Popping" effect) ***
 function initSwipe(card) {
-    // ... (existing function unchanged) ...
     const gesture = new Hammer(card);
     const screenWidth = window.innerWidth;
     gesture.get('pan').set({ direction: Hammer.DIRECTION_HORIZONTAL });
@@ -616,7 +652,10 @@ function initSwipe(card) {
     gesture.on('panmove', (e) => {
         if (!card.classList.contains('dragging')) return;
         const rotation = e.deltaX * 0.05;
-        card.style.transform = `translateX(${e.deltaX}px) rotate(${rotation}deg)`;
+        // Don't override Y or Scale, just add X and Rotate
+        const originalTransform = card.dataset.originalTransform || 'translateY(0px) scale(1)';
+        card.style.transform = `${originalTransform} translateX(${e.deltaX}px) rotate(${rotation}deg)`;
+        
         const likeOpacity = e.deltaX > 0 ? (e.deltaX / (screenWidth / 4)) : 0;
         const dislikeOpacity = e.deltaX < 0 ? (Math.abs(e.deltaX) / (screenWidth / 4)) : 0;
         card.style.setProperty('--like-opacity', likeOpacity);
@@ -633,43 +672,68 @@ function initSwipe(card) {
         if (absDeltaX > 100 || velocity > 0.5) {
             triggerSwipe(card, direction); 
         } else {
+            // Snap back to original stack position
             card.style.transition = 'transform 0.3s ease'; 
-            card.style.transform = `translateY(0px)`;
+            card.style.transform = card.dataset.originalTransform;
         }
     });
 }
 
+
+// *** MODIFIED: triggerSwipe (for Feedback & Popping) ***
 function triggerSwipe(card, direction) {
-    // ... (existing function unchanged) ...
     if (card.classList.contains('swiping')) return; 
     card.classList.add('swiping');
+    
     const screenWidth = window.innerWidth;
     const interaction = direction === 'right' ? 'like' : 'dislike';
+    
     card.style.transition = 'transform 0.3s ease, opacity 0.3s ease'; 
     card.style.transform = `translateX(${direction === 'right' ? screenWidth : -screenWidth}px) rotate(${direction === 'right' ? 30 : -30}deg)`;
     card.style.opacity = 0;
+    
     const articleTitle = card.querySelector('.article-title').textContent;
     addInteractionToFooter(articleTitle, interaction);
     handleSwipe(card.dataset.id, interaction);
+
+    // *** NEW: Show "I'm learning" feedback ***
+    if (swipeFeedbackTimer) clearTimeout(swipeFeedbackTimer);
+    swipeFeedback.textContent = interaction === 'like' ? "Got it. I'll find more like this." : "Okay. I'll adjust your feed.";
+    swipeFeedback.style.opacity = 1;
+    swipeFeedbackTimer = setTimeout(() => {
+        swipeFeedback.style.opacity = 0;
+    }, 1500); // Hide after 1.5 seconds
+
+
     setTimeout(() => {
         card.remove();
         updateCardCounter(); 
+        
         const nextCard = cardStack.lastChild;
         if (nextCard) {
+            // *** NEW: "Pop" next card into place ***
+            nextCard.style.transition = 'transform 0.2s ease-out, opacity 0.2s ease-out';
+            nextCard.style.transform = 'translateY(0px) scale(1)';
+            nextCard.style.opacity = 1;
+            nextCard.dataset.originalTransform = 'translateY(0px) scale(1)'; // Update its base state
+            
             initSwipe(nextCard);
-            nextCard.style.transition = 'transform 0.2s ease-out';
-            nextCard.style.transform = 'translateY(0px)';
             likeBtn.onclick = () => triggerSwipe(nextCard, 'right');
             dislikeBtn.onclick = () => triggerSwipe(nextCard, 'left');
         } else {
             recsContainer.classList.add('hidden');
             appIntro.classList.add('hidden'); 
+            
+            // *** NEW: Show updated end-of-stack message ***
             endOfStack.classList.remove('hidden');
+            endOfStack.querySelector('h3').textContent = "Your Daily Briefing is Ready";
+            endOfStack.querySelector('p').textContent = "You've reviewed your top 5 articles. Your feedback helps sharpen tomorrow's briefing.";
         }
     }, 300);
 }
 
 
+// --- handleSwipe & addInteractionToFooter & renderRecentInteractions --- (Unchanged)
 async function handleSwipe(articleId, interactionType) {
     // ... (existing function unchanged) ...
     console.log(`Swiped ${interactionType} on article ${articleId}`);
@@ -679,7 +743,6 @@ async function handleSwipe(articleId, interactionType) {
         console.error(`Failed to post interaction: ${err.message}`);
     }
 }
-
 function addInteractionToFooter(title, interactionType) {
     // ... (existing function unchanged) ...
     noInteractions.classList.add('hidden'); 
@@ -696,7 +759,6 @@ function addInteractionToFooter(title, interactionType) {
     `;
     recentInteractions.prepend(el);
 }
-
 function renderRecentInteractions(interactions) {
     // ... (existing function unchanged) ...
     recentInteractions.innerHTML = ''; 
@@ -710,6 +772,7 @@ function renderRecentInteractions(interactions) {
     });
 }
 
+// --- handleQuotaExceeded --- (Unchanged, but benefits from new End of Stack copy)
 function handleQuotaExceeded() {
     // ... (existing function unchanged) ...
     console.warn("Quota exceeded (403).");
@@ -720,8 +783,11 @@ function handleQuotaExceeded() {
     appIntro.classList.add('hidden');
     recsContainer.classList.add('hidden'); 
     endOfStack.classList.remove('hidden'); 
+    
+    // *** This copy is more aligned now ***
     endOfStack.querySelector('h3').textContent = "Daily Limit Reached";
     endOfStack.querySelector('p').textContent = "You've used all your recommendations for today.";
+    
     const quotaMsgEl = endOfStack.querySelector('#quota-message');
     if (quotaMsgEl) {
         quotaMsgEl.textContent = "Please check back tomorrow for more!";
@@ -733,7 +799,7 @@ function handleQuotaExceeded() {
 }
 
 
-// === BOOTSTRAP === (Added Modal Listeners)
+// === BOOTSTRAP === (Unchanged)
 loginBtn.addEventListener('click', handleLogin);
 savePersonaBtn.addEventListener('click', handleSavePersona);
 refreshBtn.addEventListener('click', loadRecommendations);
@@ -741,10 +807,8 @@ logoutBtn.addEventListener('click', () => {
     api.logout();
     showLogin();
 });
-
-// *** NEW MODAL LISTENERS ***
 editPersonaBtn.addEventListener('click', async () => {
-    // Show modal, pre-fill with latest persona
+    // ... (existing function unchanged) ...
     try {
         const me = await api.getMe(); // Fetch fresh data
         const { interest, persona } = splitPersona(me.base_persona);
@@ -755,11 +819,9 @@ editPersonaBtn.addEventListener('click', async () => {
         alert(`Error fetching persona: ${err.message}`);
     }
 });
-
 modalCancelBtn.addEventListener('click', () => {
     personaEditModal.classList.add('hidden');
 });
-
 modalSaveBtn.addEventListener('click', handleUpdatePersona);
 
 

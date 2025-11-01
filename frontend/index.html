@@ -752,24 +752,26 @@ function triggerSwipe(card, direction) {
     card.style.transform = `translateX(${direction === 'right' ? screenWidth : -screenWidth}px) rotate(${direction === 'right' ? 30 : -30}deg)`;
     card.style.opacity = 0;
     
+    // Get the title AND the url from the card's data
     const articleTitle = card.querySelector('.article-title').textContent;
-    addInteractionToFooter(articleTitle, interaction);
+    const articleUrl = card.dataset.url; // <-- ADD THIS
+    
+    // Pass the url to the footer function
+    addInteractionToFooter(articleTitle, interaction, articleUrl); // <-- PASS IT HERE
+    
     handleSwipe(card.dataset.id, interaction);
 
-    // *** NEW: Show randomized "I'm learning" feedback ***
+    // ... (rest of the function is unchanged) ...
     if (swipeFeedbackTimer) clearTimeout(swipeFeedbackTimer);
-    
     if (interaction === 'like') {
         swipeFeedback.textContent = getRandomMessage(LIKE_MESSAGES);
     } else {
         swipeFeedback.textContent = getRandomMessage(DISLIKE_MESSAGES);
     }
-    
     swipeFeedback.style.opacity = 1;
     swipeFeedbackTimer = setTimeout(() => {
         swipeFeedback.style.opacity = 0;
-    }, 1500); // Hide after 1.5 seconds
-
+    }, 1500);
 
     setTimeout(() => {
         card.remove();
@@ -808,19 +810,30 @@ async function handleSwipe(articleId, interactionType) {
     }
 }
 
-function addInteractionToFooter(title, interactionType) {
+function addInteractionToFooter(title, interactionType, articleUrl) {
     noInteractions.classList.add('hidden'); 
+
     const isLike = interactionType === 'like';
     const color = isLike ? 'border-green-500' : 'border-red-500';
     const icon = isLike ? '👍' : '👎';
     const typeText = isLike ? 'Like' : 'Dislike';
-    const el = document.createElement('div');
+
+    // 1. Create an <a> tag instead of a <div>
+    const el = document.createElement('a'); 
+    
+    // 2. Set the link properties
+    el.href = articleUrl;
+    el.target = "_blank"; // Open in new tab
+    el.rel = "noopener noreferrer"; // Security best practice
+    
+    // 3. Set the styles (rest is the same)
     el.className = `interaction-item flex-shrink-0 w-48 p-3 bg-gray-800 rounded-md border-l-4 ${color}`;
     el.title = title; 
     el.innerHTML = `
         <div class="text-sm font-semibold truncate mb-1">${icon} ${typeText}</div>
         <div class="text-xs text-gray-400 truncate-2-lines">${title}</div>
     `;
+    
     recentInteractions.prepend(el);
 }
 
@@ -831,8 +844,12 @@ function renderRecentInteractions(interactions) {
         return;
     }
     noInteractions.classList.add('hidden');
+    
+    // Pass the article_url to the helper function
     interactions.reverse().forEach(item => {
-        addInteractionToFooter(item.articles.title, item.interaction_type);
+        if (item.articles) { // Add a check in case article data is missing
+            addInteractionToFooter(item.articles.title, item.interaction_type, item.articles.article_url);
+        }
     });
 }
 

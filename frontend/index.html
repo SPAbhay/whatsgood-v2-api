@@ -36,13 +36,14 @@
             transition: all 0.2s ease-in-out;
             position: relative;
         }
-        .interaction-item:hover {
+        /* Make interaction item hoverable as a link */
+        a.interaction-item:hover {
             transform: translateY(-5px);
             background-color: #374151; /* bg-gray-700 */
             z-index: 50;
             height: auto;
         }
-        .interaction-item:hover .truncate-2-lines {
+        a.interaction-item:hover .truncate-2-lines {
             -webkit-line-clamp: unset;
             white-space: normal;
         }
@@ -126,7 +127,7 @@
 
 <body class="bg-gray-900 text-gray-100 min-h-screen font-sans overflow-hidden">
 
-    <div id="login-screen" class="container mx-auto max-w-sm p-4 pt-20 text-center hidden">
+    <div id="login-screen" class="container mx-auto max-w-sm p-4 pt-20 pb-16 text-center hidden">
         <h1 class="text-5xl font-bold text-white mb-4">whatsgood</h1>
         <p class="text-lg text-gray-400 mb-8">Enter your Beta API Key to log in.</p>
         <div class="bg-gray-800 rounded-lg p-6 shadow-lg">
@@ -201,7 +202,7 @@
             </div>
         </main>
 
-        <footer id="footer-dashboard" class="p-4 border-t border-gray-700 hidden w-full">
+        <footer id="footer-dashboard" class="p-4 pb-16 border-t border-gray-700 hidden w-full">
             <h3 class="text-sm font-semibold text-gray-400 uppercase mb-3">Recent Interactions</h3>
             <div id="recent-interactions" class="flex space-x-4 overflow-x-auto pb-2">
                 <p id="no-interactions" class="text-gray-500 text-sm">No recent interactions yet.</p>
@@ -252,12 +253,21 @@
                     <h3 class="text-xl font-bold text-white mb-4"></h3>
                     <p class="text-gray-300 mb-4"></p>
                     <p class="text-gray-400 text-sm italic mb-6 border-l-2 border-blue-500 pl-4"></p>
-                    <!-- === REMOVED "Read Full Article" button from here === -->
-                </div>
+                    </div>
                 <button class="close-expanded-btn mt-6 text-gray-400 hover:text-white">Close</button>
             </div>
         </div>
     </template>
+
+    <footer class="fixed bottom-0 left-0 w-full bg-gray-900 p-3 border-t border-gray-700 z-40">
+        <div class="text-center text-xs text-gray-500">
+            A project by 
+            <a href="https://abhay-arora.com" target="_blank" rel="noopener noreferrer" class="font-medium text-gray-400 hover:text-blue-400 transition-colors">Abhay Arora</a>.
+            Connect on 
+            <a href="https://www.linkedin.com/in/abhay-arora-digital/" target="_blank" rel="noopener noreferrer" class="font-medium text-gray-400 hover:text-blue-400 transition-colors">LinkedIn</a>.
+        </div>
+    </footer>
+
 
 <script>
 // === CONFIG ===
@@ -648,6 +658,7 @@ function updateCardCounter() {
     }
 }
 
+// === MODIFIED: createCardElement ===
 function createCardElement(article) {
     const card = articleTemplate.content.cloneNode(true).firstElementChild;
     card.dataset.id = article.id;
@@ -662,15 +673,10 @@ function createCardElement(article) {
     const cardContent = card.querySelector('.card-content');
     const expandedContent = card.querySelector('.expanded-content');
     const closeBtn = card.querySelector('.close-expanded-btn');
-    
-    // === MODIFIED: No longer need the internal readLink ===
-    // const readLink = expandedContent.querySelector('a'); 
 
     expandedContent.querySelector('h3').textContent = article.title;
     expandedContent.querySelector('p:first-of-type').textContent = article.summary;
     expandedContent.querySelector('p:last-of-type').textContent = article.reason;
-    // === REMOVED: No 'a' tag to set href for here anymore ===
-    // expandedContent.querySelector('a').href = article.url; 
 
     cardContent.addEventListener('click', () => {
         if (!card.classList.contains('dragging')) {
@@ -689,10 +695,8 @@ function createCardElement(article) {
         closeExpandedView();
     });
 
-    // === MODIFIED: Simplified click-to-close logic ===
+    // Simplified click-to-close logic
     expandedContent.addEventListener('click', (e) => {
-        // Click anywhere on the expanded content (that isn't the close button)
-        // to close the view.
         if (e.target !== closeBtn && !closeBtn.contains(e.target)) {
             e.stopPropagation();
             closeExpandedView();
@@ -740,7 +744,7 @@ function initSwipe(card) {
     });
 }
 
-// === MODIFIED: triggerSwipe (for randomized feedback) ===
+// === MODIFIED: triggerSwipe (randomized feedback + pass URL) ===
 function triggerSwipe(card, direction) {
     if (card.classList.contains('swiping')) return; 
     card.classList.add('swiping');
@@ -752,16 +756,15 @@ function triggerSwipe(card, direction) {
     card.style.transform = `translateX(${direction === 'right' ? screenWidth : -screenWidth}px) rotate(${direction === 'right' ? 30 : -30}deg)`;
     card.style.opacity = 0;
     
-    // Get the title AND the url from the card's data
     const articleTitle = card.querySelector('.article-title').textContent;
-    const articleUrl = card.dataset.url; // <-- ADD THIS
+    // === NEW: Get URL to make recent interaction clickable ===
+    const articleUrl = card.dataset.url; 
     
-    // Pass the url to the footer function
-    addInteractionToFooter(articleTitle, interaction, articleUrl); // <-- PASS IT HERE
+    addInteractionToFooter(articleTitle, interaction, articleUrl); // Pass URL
     
     handleSwipe(card.dataset.id, interaction);
 
-    // ... (rest of the function is unchanged) ...
+    // === NEW: Show randomized "I'm learning" feedback ===
     if (swipeFeedbackTimer) clearTimeout(swipeFeedbackTimer);
     if (interaction === 'like') {
         swipeFeedback.textContent = getRandomMessage(LIKE_MESSAGES);
@@ -772,6 +775,7 @@ function triggerSwipe(card, direction) {
     swipeFeedbackTimer = setTimeout(() => {
         swipeFeedback.style.opacity = 0;
     }, 1500);
+
 
     setTimeout(() => {
         card.remove();
@@ -810,6 +814,7 @@ async function handleSwipe(articleId, interactionType) {
     }
 }
 
+// === MODIFIED: addInteractionToFooter (now accepts URL) ===
 function addInteractionToFooter(title, interactionType, articleUrl) {
     noInteractions.classList.add('hidden'); 
 
@@ -837,6 +842,7 @@ function addInteractionToFooter(title, interactionType, articleUrl) {
     recentInteractions.prepend(el);
 }
 
+// === MODIFIED: renderRecentInteractions (passes URL) ===
 function renderRecentInteractions(interactions) {
     recentInteractions.innerHTML = ''; 
     if (!interactions || interactions.length === 0) {
@@ -847,7 +853,8 @@ function renderRecentInteractions(interactions) {
     
     // Pass the article_url to the helper function
     interactions.reverse().forEach(item => {
-        if (item.articles) { // Add a check in case article data is missing
+        // Add a check in case article data is missing
+        if (item.articles && item.articles.article_url) { 
             addInteractionToFooter(item.articles.title, item.interaction_type, item.articles.article_url);
         }
     });

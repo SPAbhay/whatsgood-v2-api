@@ -1,260 +1,257 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>whatsgood - Your AI News Analyst</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-tailwind.config = {
-darkMode: 'class'
-}
-</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
-<style>
-/* Card Stack Styles */
-.card-stack {
-position: relative;
-width: 90vw;
-height: 50vh; 
-max-width: 380px;
-max-height: 380px; 
-margin: auto;
-}
-.swipe-card {
-position: absolute;
-width: 100%;
-height: 100%;
-border-radius: 1rem;
-background: #1F2937; /* bg-gray-800 */
-box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.15);
-transition: transform 0.3s ease, opacity 0.3s ease;
-cursor: grab;
-display: flex;
-flex-direction: column;
-overflow: hidden;
-}
-.swipe-card.dragging {
-transition: none;
-cursor: grabbing;
-}
-.swipe-card .like-badge, .swipe-card .dislike-badge {
-position: absolute;
-top: 20px;
-font-size: 2rem;
-font-weight: bold;
-text-transform: uppercase;
-padding: 0.5rem 1rem;
-border-radius: 0.5rem;
-opacity: 0;
-transition: opacity 0.2s ease;
-}
-.swipe-card .like-badge {
-left: 20px;
-color: #10B981; /* green-500 */
-border: 4px solid #10B981;
-transform: rotate(-20deg);
-}
-.swipe-card .dislike-badge {
-right: 20px;
-color: #EF4444; /* red-500 */
-border: 4px solid #EF4444;
-transform: rotate(20deg);
-}
-.swipe-card.dragging .like-badge {
-opacity: var(--like-opacity, 0);
-}
-.swipe-card.dragging .dislike-badge {
-opacity: var(--dislike-opacity, 0);
-}
-.spinner {
-border: 4px solid rgba(255, 255, 255, 0.3);
-border-radius: 50%;
-border-top: 4px solid #fff;
-width: 32px;
-height: 32px;
-animation: spin 1s linear infinite;
-}
-@keyframes spin {
-0% { transform: rotate(0deg); }
-100% { transform: rotate(360deg); }
-}
-/* Style for expanded article */
-.expanded-content {
-height: 100%;
-overflow-y: auto;
-background: rgba(0,0,0,0.8);
-backdrop-filter: blur(10px);
-padding: 1.5rem;
-display: flex;
-flex-direction: column;
-justify-content: space-between;
-}
-
-/* Style for 2-line truncation in footer */
-.truncate-2-lines {
-overflow: hidden;
-text-overflow: ellipsis;
-display: -webkit-box;
--webkit-line-clamp: 2; /* number of lines to show */
--webkit-box-orient: vertical;
-}
-
-/* Interaction hover fix */
-.interaction-item {
-    transition: all 0.2s ease-in-out;
-    position: relative; /* Needed for z-index */
-}
-.interaction-item:hover {
-    transform: translateY(-5px);
-    background-color: #374151; /* bg-gray-700 */
-    z-index: 50;
-    height: auto; /* Allow card to grow */
-}
-/* This class is on the text itself */
-.interaction-item:hover .truncate-2-lines {
-    -webkit-line-clamp: unset; /* Remove truncation */
-    white-space: normal; /* Allow text to wrap */
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>whatsgood - Your AI News Analyst</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+    <style>
+        /* ... (All your existing <style> content remains unchanged) ... */
+        .card-stack {
+            position: relative;
+            width: 90vw;
+            height: 50vh; 
+            max-width: 380px;
+            max-height: 380px; 
+            margin: auto;
+        }
+        .swipe-card {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 1rem;
+            background: #1F2937; /* bg-gray-800 */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.15);
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            cursor: grab;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .swipe-card.dragging {
+            transition: none;
+            cursor: grabbing;
+        }
+        .swipe-card .like-badge, .swipe-card .dislike-badge {
+            position: absolute;
+            top: 20px;
+            font-size: 2rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .swipe-card .like-badge {
+            left: 20px;
+            color: #10B981; /* green-500 */
+            border: 4px solid #10B981;
+            transform: rotate(-20deg);
+        }
+        .swipe-card .dislike-badge {
+            right: 20px;
+            color: #EF4444; /* red-500 */
+            border: 4px solid #EF4444;
+            transform: rotate(20deg);
+        }
+        .swipe-card.dragging .like-badge {
+            opacity: var(--like-opacity, 0);
+        }
+        .swipe-card.dragging .dislike-badge {
+            opacity: var(--dislike-opacity, 0);
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #fff;
+            width: 32px;
+            height: 32px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .expanded-content {
+            height: 100%;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .truncate-2-lines {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        .interaction-item {
+            transition: all 0.2s ease-in-out;
+            position: relative;
+        }
+        .interaction-item:hover {
+            transform: translateY(-5px);
+            background-color: #374151; /* bg-gray-700 */
+            z-index: 50;
+            height: auto;
+        }
+        .interaction-item:hover .truncate-2-lines {
+            -webkit-line-clamp: unset;
+            white-space: normal;
+        }
+    </style>
 </head>
 
 <body class="bg-gray-900 text-gray-100 min-h-screen font-sans overflow-hidden">
 
-<div id="login-screen" class="container mx-auto max-w-sm p-4 pt-20 text-center hidden">
-<h1 class="text-5xl font-bold text-white mb-4">whatsgood</h1>
-<p class="text-lg text-gray-400 mb-8">Enter your Beta API Key to log in.</p>
-<div class="bg-gray-800 rounded-lg p-6 shadow-lg">
-<input id="api-key-input" type="password" class="w-full p-3 bg-gray-700 text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your API Key">
-<button id="login-btn" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-200">
-Login
-</button>
-<p id="login-error" class="text-red-400 text-sm mt-3"></p>
-</div>
-</div>
-
-<div id="dashboard-screen" class="flex flex-col h-screen max-h-[-webkit-fill-available] hidden">
-
-<header class="flex justify-between items-center p-4 border-b border-gray-700">
-<h1 class="text-2xl font-bold text-white">whatsgood</h1>
-<button id="logout-btn" class="text-gray-400 hover:text-white">Logout</button>
-</header>
-
-<!-- 
-    MODIFIED:
-    - Changed justify-center to justify-start (aligns content to top)
-    - Changed overflow-hidden to overflow-y-auto (allows scrolling)
-    - Added pt-12 and pb-8 for vertical padding
--->
-<main class="flex-1 flex flex-col items-center justify-start p-4 pt-12 pb-8 overflow-y-auto">
-    
-    <div id="persona-setup" class="w-full max-w-md p-6 bg-gray-800 rounded-lg shadow-lg text-center hidden">
-    <h2 class="text-2xl font-semibold mb-4">Welcome!</h2>
-    <p class="text-gray-300 mb-6">Tell us about yourself to get personalized news.</p>
-
-    <input id="interest-input" type="text" class="w-full p-3 bg-gray-700 text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4" placeholder="Your Main Field of Interest (e.g., 'AI')">
-
-    <textarea id="persona-input" rows="3" class="w-full p-3 bg-gray-700 text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Your Persona (e.g., 'An AI engineer in London...')"></textarea>
-    <p class="text-xs text-gray-500 mt-1 mb-4">The more detail, the better!</p>
-
-    <button id="save-persona-btn" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-200">
-    Save & Start
-    </button>
+    <div id="login-screen" class="container mx-auto max-w-sm p-4 pt-20 text-center hidden">
+        <h1 class="text-5xl font-bold text-white mb-4">whatsgood</h1>
+        <p class="text-lg text-gray-400 mb-8">Enter your Beta API Key to log in.</p>
+        <div class="bg-gray-800 rounded-lg p-6 shadow-lg">
+            <input id="api-key-input" type="password" class="w-full p-3 bg-gray-700 text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your API Key">
+            <button id="login-btn" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-200">
+                Login
+            </button>
+            <p id="login-error" class="text-red-400 text-sm mt-3"></p>
+        </div>
     </div>
 
-    <div id="app-intro" class="w-full max-w-md p-4 text-center text-gray-400 text-sm hidden">
-    <p>Swipe right to <span class="text-green-400 font-semibold">like</span>, left to <span class="text-red-400 font-semibold">dislike</span>. Tap a card to read more.</p>
+    <div id="dashboard-screen" class="flex flex-col h-screen max-h-[-webkit-fill-available] hidden">
+
+        <header class="flex justify-between items-center p-4 border-b border-gray-700">
+            <h1 class="text-2xl font-bold text-white">whatsgood</h1>
+            <div class="flex space-x-4 items-center">
+                <button id="edit-persona-btn" class="text-gray-400 hover:text-white text-sm">Edit Persona</button>
+                <button id="logout-btn" class="text-gray-400 hover:text-white text-sm">Logout</button>
+            </div>
+        </header>
+
+        <main class="flex-1 flex flex-col items-center justify-start p-4 pt-12 pb-8 overflow-y-auto">
+            <div id="persona-setup" class="w-full max-w-md p-6 bg-gray-800 rounded-lg shadow-lg text-center hidden">
+                <h2 class="text-2xl font-semibold mb-4">Welcome!</h2>
+                <p class="text-gray-300 mb-6">Tell us about yourself to get personalized news.</p>
+                <input id="interest-input" type="text" class="w-full p-3 bg-gray-700 text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4" placeholder="Your Main Field of Interest (e.g., 'AI')">
+                <textarea id="persona-input" rows="3" class="w-full p-3 bg-gray-700 text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Your Persona (e.g., 'An AI engineer in London...')"></textarea>
+                <p class="text-xs text-gray-500 mt-1 mb-4">The more detail, the better!</p>
+                <button id="save-persona-btn" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-200">
+                Save & Start
+                </button>
+            </div>
+        
+            <div id="app-intro" class="w-full max-w-md p-4 text-center text-gray-400 text-sm hidden">
+                <p>Swipe right to <span class="text-green-400 font-semibold">like</span>, left to <span class="text-red-400 font-semibold">dislike</span>. Tap a card to read more.</p>
+            </div>
+        
+            <div id="recommendations-container" class="hidden w-full relative">
+                <div id="card-counter" class="text-center text-gray-500 text-sm mb-2 hidden"></div>
+                <div id="loading-container" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex flex-col items-center hidden">
+                    <div id="loading-spinner" class="spinner"></div>
+                    <p id="loading-text" class="text-gray-400 text-sm mt-3">Fetching your news...</p>
+                </div>
+                <div id="card-stack" class="card-stack"></div>
+                <div id="swipe-controls" class="mt-16 flex justify-center items-center space-x-12 hidden">
+                    <button id="dislike-btn" class="w-16 h-16 rounded-full bg-gray-800 border-2 border-red-500 text-red-500 flex items-center justify-center text-3xl font-bold shadow-lg transform active:scale-90 transition-transform">&times;</button>
+                    <div class="text-gray-500 text-sm flex items-center space-x-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18" /></svg>
+                        <span>SWIPE</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                    </div>
+                    <button id="like-btn" class="w-16 h-16 rounded-full bg-gray-800 border-2 border-green-500 text-green-500 flex items-center justify-center text-3xl font-bold shadow-lg transform active:scale-90 transition-transform">&#10003;</button>
+                </div>
+            </div>
+            
+            <div id="end-of-stack" class="hidden text-center text-gray-400 p-8">
+                <h3 class="text-2xl font-semibold mb-4">You're all caught up!</h3>
+                <p class="mb-6">You've seen all available recommendations. Check back later for more.</p>
+                <p id="quota-message" class="text-yellow-400 text-sm mb-6 hidden"></p>
+                <button id="refresh-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-200">
+                    Check for more
+                </button>
+            </div>
+        </main>
+
+        <footer id="footer-dashboard" class="p-4 border-t border-gray-700 hidden w-full">
+            <h3 class="text-sm font-semibold text-gray-400 uppercase mb-3">Recent Interactions</h3>
+            <div id="recent-interactions" class="flex space-x-4 overflow-x-auto pb-2">
+                <p id="no-interactions" class="text-gray-500 text-sm">No recent interactions yet.</p>
+            </div>
+        </footer>
     </div>
 
-    <div id="recommendations-container" class="hidden w-full relative">
+    <div id="persona-edit-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 hidden">
+        <div class="w-full max-w-md p-6 bg-gray-800 rounded-lg shadow-lg">
+            <h2 class="text-2xl font-semibold mb-4">Edit Your Persona</h2>
+            
+            <div class="mb-4 text-left">
+                <label for="modal-interest-input" class="block text-sm font-medium text-gray-300 mb-1">Primary Field of Interest:</label>
+                <input id="modal-interest-input" type="text" class="w-full p-3 bg-gray-700 text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., 'AI'">
+            </div>
+            
+            <div class="mb-6 text-left">
+                <label for="modal-persona-input" class="block text-sm font-medium text-gray-300 mb-1">Your Persona:</label>
+                <textarea id="modal-persona-input" rows="3" class="w-full p-3 bg-gray-700 text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., 'An AI engineer in London...'"></textarea>
+            </div>
 
-    <div id="card-counter" class="text-center text-gray-500 text-sm mb-2 hidden"></div>
-
-    <div id="loading-container" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex flex-col items-center hidden">
-        <div id="loading-spinner" class="spinner"></div>
-        <p id="loading-text" class="text-gray-400 text-sm mt-3">Fetching your news...</p>
+            <div class="flex justify-end space-x-3">
+                <button id="modal-cancel-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition duration-200">
+                    Cancel
+                </button>
+                <button id="modal-save-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition duration-200">
+                    Save & Refresh
+                </button>
+            </div>
+        </div>
     </div>
 
-    <div id="card-stack" class="card-stack">
-        <!-- Cards go here -->
-    </div>
-
-    <div id="swipe-controls" class="mt-16 flex justify-center items-center space-x-12 hidden">
-    <button id="dislike-btn" class="w-16 h-16 rounded-full bg-gray-800 border-2 border-red-500 text-red-500 flex items-center justify-center text-3xl font-bold shadow-lg transform active:scale-90 transition-transform">
-    &times;
-    </button>
-
-    <div class="text-gray-500 text-sm flex items-center space-x-2">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18" /></svg>
-    <span>SWIPE</span>
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-    </div>
-
-    <button id="like-btn" class="w-16 h-16 rounded-full bg-gray-800 border-2 border-green-500 text-green-500 flex items-center justify-center text-3xl font-bold shadow-lg transform active:scale-90 transition-transform">
-    &#10003;
-    </button>
-    </div>
-
-    </div>
-    
-    <div id="end-of-stack" class="hidden text-center text-gray-400 p-8">
-        <h3 class="text-2xl font-semibold mb-4">You're all caught up!</h3>
-        <p class="mb-6">You've seen all available recommendations. Check back later for more.</p>
-        <p id="quota-message" class="text-yellow-400 text-sm mb-6 hidden"></p>
-        <button id="refresh-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-200">
-        Check for more
-        </button>
-    </div>
-
-</main>
-
-<footer id="footer-dashboard" class="p-4 border-t border-gray-700 hidden w-full">
-<h3 class="text-sm font-semibold text-gray-400 uppercase mb-3">Recent Interactions</h3>
-<div id="recent-interactions" class="flex space-x-4 overflow-x-auto pb-2">
-<p id="no-interactions" class="text-gray-500 text-sm">No recent interactions yet.</p>
-</div>
-</footer>
-</div>
-
-<template id="article-template">
-<div class="swipe-card" data-id="">
-<div class="card-content p-6 flex-1 overflow-y-auto">
-<div class="flex justify-between items-center mb-2">
-<span class="industry-tag text-xs font-medium bg-blue-900 text-blue-200 py-1 px-3 rounded-full uppercase"></span>
-<span class="published-date text-xs text-gray-500"></span>
-</div>
-<h3 class="article-title text-2xl font-bold text-white mb-4"></h3>
-<p class="article-summary text-gray-300 text-lg"></p>
-<p class="article-reason text-gray-400 text-sm italic mt-4 hidden"></p>
-</div>
-<div class="like-badge">LIKE</div>
-<div class="dislike-badge">NOPE</div>
-
-<div class="expanded-content hidden">
-<div>
-<h3 class="text-2xl font-bold text-white mb-4"></h3>
-<p class="text-gray-300 mb-4"></p>
-<p class="text-gray-400 text-sm italic mb-6 border-l-2 border-blue-500 pl-4"></p>
-<a href="" target="_blank" rel="noopener noreferrer" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition duration-200">
-Read Full Article
-</a>
-</div>
-<button class="close-expanded-btn mt-6 text-gray-400 hover:text-white">Close</button>
-</div>
-</div>
-</template>
+    <template id="article-template">
+        <div class="swipe-card" data-id="">
+            <div class="card-content p-6 flex-1 overflow-y-auto">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="industry-tag text-xs font-medium bg-blue-900 text-blue-200 py-1 px-3 rounded-full uppercase"></span>
+                    <span class="published-date text-xs text-gray-500"></span>
+                </div>
+                <h3 class="article-title text-2xl font-bold text-white mb-4"></h3>
+                <p class="article-summary text-gray-300 text-lg"></p>
+                <p class="article-reason text-gray-400 text-sm italic mt-4 hidden"></p>
+            </div>
+            <div class="like-badge">LIKE</div>
+            <div class="dislike-badge">NOPE</div>
+            <div class="expanded-content hidden">
+                <div>
+                    <h3 class="text-2xl font-bold text-white mb-4"></h3>
+                    <p class="text-gray-300 mb-4"></p>
+                    <p class="text-gray-400 text-sm italic mb-6 border-l-2 border-blue-500 pl-4"></p>
+                    <a href="" target="_blank" rel="noopener noreferrer" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition duration-200">
+                        Read Full Article
+                    </a>
+                </div>
+                <button class="close-expanded-btn mt-6 text-gray-400 hover:text-white">Close</button>
+            </div>
+        </div>
+    </template>
 
 <script>
-// === CONFIG ===
+// === CONFIG === (Unchanged)
 const API_BASE_URL = "https://api-whatsgood.abhay-arora.com";
 
-// === STATE ===
+// === STATE === (Unchanged)
 let API_KEY = null;
 let USER_ID = null;
 let currentArticles = [];
 let totalCardsInStack = 0; 
 
-// === DOM ELEMENTS ===
+// === DOM ELEMENTS === (Added Modal Elements)
 const loginScreen = document.getElementById('login-screen');
 const dashboardScreen = document.getElementById('dashboard-screen');
 const apiKeyInput = document.getElementById('api-key-input');
@@ -273,7 +270,6 @@ const footerDashboard = document.getElementById('footer-dashboard');
 const recentInteractions = document.getElementById('recent-interactions');
 const noInteractions = document.getElementById('no-interactions');
 const articleTemplate = document.getElementById('article-template');
-
 const interestInput = document.getElementById('interest-input');
 const appIntro = document.getElementById('app-intro');
 const cardCounter = document.getElementById('card-counter');
@@ -281,251 +277,281 @@ const swipeControls = document.getElementById('swipe-controls');
 let likeBtn = document.getElementById('like-btn'); 
 let dislikeBtn = document.getElementById('dislike-btn'); 
 
+// *** NEW MODAL ELEMENTS ***
+const editPersonaBtn = document.getElementById('edit-persona-btn');
+const personaEditModal = document.getElementById('persona-edit-modal');
+const modalInterestInput = document.getElementById('modal-interest-input');
+const modalPersonaInput = document.getElementById('modal-persona-input');
+const modalCancelBtn = document.getElementById('modal-cancel-btn');
+const modalSaveBtn = document.getElementById('modal-save-btn');
 
-// === API CLIENT ===
+
+// === API CLIENT === (Unchanged)
 class ApiClient {
-constructor() {
-this.apiKey = localStorage.getItem('whatsgood_api_key');
-this.userId = localStorage.getItem('whatsgood_user_id');
+    constructor() {
+        this.apiKey = localStorage.getItem('whatsgood_api_key');
+        this.userId = localStorage.getItem('whatsgood_user_id');
+    }
+    async login(key) {
+        const res = await this.request('/login', 'POST', null, { api_key: key });
+        this.apiKey = key;
+        this.userId = res.user_id;
+        localStorage.setItem('whatsgood_api_key', key);
+        localStorage.setItem('whatsgood_user_id', res.user_id);
+        return res;
+    }
+    logout() {
+        this.apiKey = null;
+        this.userId = null;
+        localStorage.removeItem('whatsgood_api_key');
+        localStorage.removeItem('whatsgood_user_id');
+    }
+    isLoggedIn() {
+        return !!this.apiKey;
+    }
+    async getMe() {
+        return this.request('/me', 'GET');
+    }
+    async setPersona(persona) {
+        return this.request('/persona', 'POST', { user_id: this.userId, persona });
+    }
+    async getRecommendations() {
+        return this.request(`/recommendations?user_id=${this.userId}`, 'GET');
+    }
+    async postInteraction(articleId, interactionType) {
+        return this.request('/interact', 'POST', { user_id: this.userId, article_id: articleId, interaction_type: interactionType });
+    }
+    async request(endpoint, method, body = null, unauthData = null) {
+        const headers = { 'Content-Type': 'application/json' };
+        if (this.apiKey) {
+            headers['x-api-key'] = this.apiKey;
+        }
+        const config = {
+            method,
+            headers
+        };
+        if (body) {
+            config.body = JSON.stringify(body);
+        } else if (unauthData) {
+            config.body = JSON.stringify(unauthData);
+        }
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+        if (response.status === 403) {
+            throw new Error("403: Invalid API Key or Quota Exceeded.");
+        }
+        if (response.status === 401) {
+            throw new Error("401: Unauthorized. Please log in again.");
+        }
+        if (!response.ok) {
+            throw new Error(`API request failed with status ${response.status}`);
+        }
+        return await response.json();
+    }
 }
-
-async login(key) {
-const res = await this.request('/login', 'POST', null, { api_key: key });
-this.apiKey = key;
-this.userId = res.user_id;
-localStorage.setItem('whatsgood_api_key', key);
-localStorage.setItem('whatsgood_user_id', res.user_id);
-return res;
-}
-
-logout() {
-this.apiKey = null;
-this.userId = null;
-localStorage.removeItem('whatsgood_api_key');
-localStorage.removeItem('whatsgood_user_id');
-}
-
-isLoggedIn() {
-return !!this.apiKey;
-}
-
-async getMe() {
-return this.request('/me', 'GET');
-}
-
-async setPersona(persona) {
-return this.request('/persona', 'POST', { user_id: this.userId, persona });
-}
-
-async getRecommendations() {
-return this.request(`/recommendations?user_id=${this.userId}`, 'GET');
-}
-
-async postInteraction(articleId, interactionType) {
-return this.request('/interact', 'POST', { user_id: this.userId, article_id: articleId, interaction_type: interactionType });
-}
-
-async request(endpoint, method, body = null, unauthData = null) {
-const headers = { 'Content-Type': 'application/json' };
-if (this.apiKey) {
-headers['x-api-key'] = this.apiKey;
-}
-
-const config = {
-method,
-headers
-};
-
-if (body) {
-config.body = JSON.stringify(body);
-} else if (unauthData) {
-config.body = JSON.stringify(unauthData);
-}
-
-const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-
-if (response.status === 403) {
-throw new Error("403: Invalid API Key or Quota Exceeded.");
-}
-if (response.status === 401) {
-throw new Error("401: Unauthorized. Please log in again.");
-}
-if (!response.ok) {
-throw new Error(`API request failed with status ${response.status}`);
-}
-return await response.json();
-}
-}
-
 const api = new ApiClient();
 
 // === APP LOGIC ===
 
-function initApp() {
-if (api.isLoggedIn()) {
-showDashboard();
-} else {
-showLogin();
+// --- Helper to parse persona ---
+function splitPersona(basePersona) {
+    if (!basePersona) return { interest: '', persona: '' };
+    const parts = basePersona.split(' | ');
+    if (parts.length > 1) {
+        return { interest: parts[0], persona: parts[1] };
+    }
+    return { interest: '', persona: basePersona }; // Fallback
 }
+
+function initApp() {
+    if (api.isLoggedIn()) {
+        showDashboard();
+    } else {
+        showLogin();
+    }
 }
 
 function showLogin() {
-dashboardScreen.classList.add('hidden');
-loginScreen.classList.remove('hidden');
+    dashboardScreen.classList.add('hidden');
+    loginScreen.classList.remove('hidden');
 }
 
 async function showDashboard() {
-loginScreen.classList.add('hidden');
-dashboardScreen.classList.remove('hidden');
+    loginScreen.classList.add('hidden');
+    dashboardScreen.classList.remove('hidden');
 
-try {
-const me = await api.getMe();
-USER_ID = me.user_id;
-renderRecentInteractions(me.recent_interactions);
+    try {
+        const me = await api.getMe();
+        USER_ID = me.user_id; // Set global USER_ID
+        api.userId = me.user_id; // Sync API client
+        renderRecentInteractions(me.recent_interactions);
 
-if (!me.base_persona) {
-// New user: Show persona setup
-recsContainer.classList.add('hidden');
-footerDashboard.classList.add('hidden');
-appIntro.classList.add('hidden'); 
-personaSetup.classList.remove('hidden');
-endOfStack.classList.add('hidden'); 
-loadingContainer.classList.add('hidden'); 
-} else {
-// Existing user: Show recs
-const parts = me.base_persona.split(' | ');
-if (parts.length > 1) {
-interestInput.value = parts[0];
-personaInput.value = parts[1];
-} else {
-personaInput.value = me.base_persona;
-}
-
-personaSetup.classList.add('hidden');
-recsContainer.classList.remove('hidden'); 
-footerDashboard.classList.remove('hidden');
-appIntro.classList.add('hidden'); 
-endOfStack.classList.add('hidden'); 
-loadRecommendations();
-}
-} catch (err) {
-console.error(err);
-if (err.message.includes('403')) {
-handleQuotaExceeded(); 
-} else if (err.message.includes('401')) {
-alert("Session expired. Please log in again.");
-api.logout();
-showLogin();
-} else {
-alert(`Error: ${err.message}. Logging out.`);
-api.logout();
-showLogin();
-}
-}
+        if (!me.base_persona) {
+            // New user: Show persona setup
+            recsContainer.classList.add('hidden');
+            footerDashboard.classList.add('hidden');
+            appIntro.classList.add('hidden'); 
+            personaSetup.classList.remove('hidden');
+            endOfStack.classList.add('hidden'); 
+            loadingContainer.classList.add('hidden'); 
+        } else {
+            // Existing user: Show recs
+            const { interest, persona } = splitPersona(me.base_persona);
+            
+            // Pre-fill onboarding form (in case it's shown)
+            interestInput.value = interest;
+            personaInput.value = persona;
+            
+            // Pre-fill edit modal form (for when they click edit)
+            modalInterestInput.value = interest;
+            modalPersonaInput.value = persona;
+            
+            personaSetup.classList.add('hidden');
+            recsContainer.classList.remove('hidden'); 
+            footerDashboard.classList.remove('hidden');
+            appIntro.classList.add('hidden'); 
+            endOfStack.classList.add('hidden'); 
+            loadRecommendations();
+        }
+    } catch (err) {
+        // ... (existing error handling) ...
+        console.error(err);
+        if (err.message.includes('403')) {
+            handleQuotaExceeded(); 
+        } else if (err.message.includes('401')) {
+            alert("Session expired. Please log in again.");
+            api.logout();
+            showLogin();
+        } else {
+            alert(`Error: ${err.message}. Logging out.`);
+            api.logout();
+            showLogin();
+        }
+    }
 }
 
 async function handleLogin() {
-const key = apiKeyInput.value;
-if (!key) return;
-
-loginError.textContent = "";
-try {
-await api.login(key);
-showDashboard();
-} catch (err) {
-console.error(err);
-loginError.textContent = err.message;
-}
+    // ... (existing function unchanged) ...
+    const key = apiKeyInput.value;
+    if (!key) return;
+    loginError.textContent = "";
+    try {
+        await api.login(key);
+        showDashboard();
+    } catch (err) {
+        console.error(err);
+        loginError.textContent = err.message;
+    }
 }
 
 async function handleSavePersona() {
-const interest = interestInput.value;
-const persona = personaInput.value;
-if (!interest || !persona) {
-alert("Please fill out both your main interest and your persona description.");
-return;
+    // ... (existing function unchanged) ...
+    const interest = interestInput.value;
+    const persona = personaInput.value;
+    if (!interest || !persona) {
+        alert("Please fill out both your main interest and your persona description.");
+        return;
+    }
+    const combinedPersona = `${interest} | ${persona}`;
+    try {
+        await api.setPersona(combinedPersona);
+        showDashboard(); // Reload dashboard
+    } catch (err) {
+        alert(`Error saving persona: ${err.message}`);
+    }
 }
 
-const combinedPersona = `${interest} | ${persona}`;
+// *** NEW: Handle Persona Update from Modal ***
+async function handleUpdatePersona() {
+    const interest = modalInterestInput.value;
+    const persona = modalPersonaInput.value;
+    if (!interest || !persona) {
+        alert("Please fill out both your main interest and your persona description.");
+        return;
+    }
 
-try {
-await api.setPersona(combinedPersona);
-showDashboard(); // Reload dashboard
-} catch (err) {
-alert(`Error saving persona: ${err.message}`);
+    const combinedPersona = `${interest} | ${persona}`;
+    
+    // Show saving state
+    modalSaveBtn.disabled = true;
+    modalSaveBtn.textContent = "Saving...";
+
+    try {
+        await api.setPersona(combinedPersona);
+        personaEditModal.classList.add('hidden'); // Hide modal
+        loadRecommendations(); // Reload recommendations with new persona
+    } catch (err) {
+        alert(`Error saving persona: ${err.message}`);
+    } finally {
+        modalSaveBtn.disabled = false;
+        modalSaveBtn.textContent = "Save & Refresh";
+    }
 }
-}
+
 
 async function loadRecommendations() {
-cardStack.innerHTML = ''; // Clear old cards
-endOfStack.classList.add('hidden'); 
-cardCounter.classList.add('hidden'); 
-swipeControls.classList.add('hidden'); 
-appIntro.classList.add('hidden'); 
-recsContainer.classList.remove('hidden'); 
-loadingContainer.classList.remove('hidden');
+    // ... (existing function unchanged) ...
+    cardStack.innerHTML = '';
+    endOfStack.classList.add('hidden'); 
+    cardCounter.classList.add('hidden'); 
+    swipeControls.classList.add('hidden'); 
+    appIntro.classList.add('hidden'); 
+    recsContainer.classList.remove('hidden'); 
+    loadingContainer.classList.remove('hidden');
 
-// Reset refresh button state
-refreshBtn.disabled = false;
-refreshBtn.textContent = "Check for more";
-refreshBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-const quotaMsgEl = endOfStack.querySelector('#quota-message');
-if (quotaMsgEl) quotaMsgEl.classList.add('hidden');
+    refreshBtn.disabled = false;
+    refreshBtn.textContent = "Check for more";
+    refreshBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    const quotaMsgEl = endOfStack.querySelector('#quota-message');
+    if (quotaMsgEl) quotaMsgEl.classList.add('hidden');
 
-// Clear old button listeners
-const newLikeBtn = likeBtn.cloneNode(true);
-likeBtn.parentNode.replaceChild(newLikeBtn, likeBtn);
-likeBtn = newLikeBtn; 
+    const newLikeBtn = likeBtn.cloneNode(true);
+    likeBtn.parentNode.replaceChild(newLikeBtn, likeBtn);
+    likeBtn = newLikeBtn; 
 
-const newDislikeBtn = dislikeBtn.cloneNode(true);
-dislikeBtn.parentNode.replaceChild(newDislikeBtn, dislikeBtn);
-dislikeBtn = newDislikeBtn; 
+    const newDislikeBtn = dislikeBtn.cloneNode(true);
+    dislikeBtn.parentNode.replaceChild(newDislikeBtn, dislikeBtn);
+    dislikeBtn = newDislikeBtn; 
 
-
-try {
-const data = await api.getRecommendations();
-currentArticles = data.recommendations;
-loadingContainer.classList.add('hidden');
-
-if (currentArticles.length > 0) {
-totalCardsInStack = currentArticles.length; 
-renderCardStack();
-cardCounter.classList.remove('hidden'); 
-swipeControls.classList.remove('hidden'); 
-appIntro.classList.remove('hidden'); 
-} else {
-recsContainer.classList.add('hidden'); 
-appIntro.classList.add('hidden');
-endOfStack.classList.remove('hidden');
-endOfStack.querySelector('p').textContent = "You're all caught up! Check back later for more.";
-}
-} catch (err) {
-console.error(err);
-loadingContainer.classList.add('hidden');
-if (err.message.includes('403')) {
-handleQuotaExceeded(); 
-} else {
-recsContainer.classList.add('hidden'); 
-endOfStack.classList.remove('hidden');
-endOfStack.querySelector('p').textContent = `Error: ${err.message}`;
-}
-}
+    try {
+        const data = await api.getRecommendations();
+        currentArticles = data.recommendations;
+        loadingContainer.classList.add('hidden');
+        if (currentArticles.length > 0) {
+            totalCardsInStack = currentArticles.length; 
+            renderCardStack();
+            cardCounter.classList.remove('hidden'); 
+            swipeControls.classList.remove('hidden'); 
+            appIntro.classList.remove('hidden'); 
+        } else {
+            recsContainer.classList.add('hidden'); 
+            appIntro.classList.add('hidden');
+            endOfStack.classList.remove('hidden');
+            endOfStack.querySelector('p').textContent = "You're all caught up! Check back later for more.";
+        }
+    } catch (err) {
+        console.error(err);
+        loadingContainer.classList.add('hidden');
+        if (err.message.includes('403')) {
+            handleQuotaExceeded(); 
+        } else {
+            recsContainer.classList.add('hidden'); 
+            endOfStack.classList.remove('hidden');
+            endOfStack.querySelector('p').textContent = `Error: ${err.message}`;
+        }
+    }
 }
 
 function renderCardStack() {
+    // ... (existing function unchanged) ...
     const total = currentArticles.length; 
     currentArticles.reverse().forEach((article, index) => {
         const card = createCardElement(article);
         card.style.zIndex = index;
-
         const translateY = (total - 1 - index) * 10;
         card.style.transform = `translateY(${translateY}px)`;
-
         cardStack.appendChild(card);
     });
-
     updateCardCounter(); 
-
     const topCard = cardStack.lastChild;
     if (topCard) {
         initSwipe(topCard);
@@ -535,213 +561,210 @@ function renderCardStack() {
 }
 
 function updateCardCounter() {
-const remainingCards = cardStack.querySelectorAll('.swipe-card').length;
-if (remainingCards > 0 && totalCardsInStack > 0) {
-cardCounter.textContent = `Card ${totalCardsInStack - remainingCards + 1} of ${totalCardsInStack}`;
-cardCounter.classList.remove('hidden');
-} else {
-cardCounter.classList.add('hidden');
-}
+    // ... (existing function unchanged) ...
+    const remainingCards = cardStack.querySelectorAll('.swipe-card').length;
+    if (remainingCards > 0 && totalCardsInStack > 0) {
+        cardCounter.textContent = `Card ${totalCardsInStack - remainingCards + 1} of ${totalCardsInStack}`;
+        cardCounter.classList.remove('hidden');
+    } else {
+        cardCounter.classList.add('hidden');
+    }
 }
 
 
 function createCardElement(article) {
-const card = articleTemplate.content.cloneNode(true).firstElementChild;
-card.dataset.id = article.id;
-card.dataset.url = article.url;
-card.dataset.reason = article.reason; 
-
-card.querySelector('.industry-tag').textContent = article.industry;
-card.querySelector('.published-date').textContent = new Date(article.published_date).toLocaleDateString();
-card.querySelector('.article-title').textContent = article.title;
-card.querySelector('.article-summary').textContent = article.summary;
-card.querySelector('.article-reason').textContent = article.reason; 
-
-// Populate expanded view
-const expandedContent = card.querySelector('.expanded-content');
-expandedContent.querySelector('h3').textContent = article.title;
-expandedContent.querySelector('p:first-of-type').textContent = article.summary;
-expandedContent.querySelector('p:last-of-type').textContent = article.reason;
-expandedContent.querySelector('a').href = article.url;
-
-// Add click to expand
-card.querySelector('.card-content').addEventListener('click', () => {
-if (!card.classList.contains('dragging')) {
-card.querySelector('.card-content').classList.add('hidden');
-expandedContent.classList.remove('hidden');
-}
-});
-
-card.querySelector('.close-expanded-btn').addEventListener('click', (e) => {
-e.stopPropagation();
-card.querySelector('.card-content').classList.remove('hidden');
-expandedContent.classList.add('hidden');
-});
-
-return card;
+    // ... (existing function unchanged) ...
+    const card = articleTemplate.content.cloneNode(true).firstElementChild;
+    card.dataset.id = article.id;
+    card.dataset.url = article.url;
+    card.dataset.reason = article.reason; 
+    card.querySelector('.industry-tag').textContent = article.industry;
+    card.querySelector('.published-date').textContent = new Date(article.published_date).toLocaleDateString();
+    card.querySelector('.article-title').textContent = article.title;
+    card.querySelector('.article-summary').textContent = article.summary;
+    card.querySelector('.article-reason').textContent = article.reason; 
+    const expandedContent = card.querySelector('.expanded-content');
+    expandedContent.querySelector('h3').textContent = article.title;
+    expandedContent.querySelector('p:first-of-type').textContent = article.summary;
+    expandedContent.querySelector('p:last-of-type').textContent = article.reason;
+    expandedContent.querySelector('a').href = article.url;
+    card.querySelector('.card-content').addEventListener('click', () => {
+        if (!card.classList.contains('dragging')) {
+            card.querySelector('.card-content').classList.add('hidden');
+            expandedContent.classList.remove('hidden');
+        }
+    });
+    card.querySelector('.close-expanded-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        card.querySelector('.card-content').classList.remove('hidden');
+        expandedContent.classList.add('hidden');
+    });
+    return card;
 }
 
 function initSwipe(card) {
-const gesture = new Hammer(card);
-const screenWidth = window.innerWidth;
-
-gesture.get('pan').set({ direction: Hammer.DIRECTION_HORIZONTAL });
-
-gesture.on('panstart', () => {
-if (card.querySelector('.expanded-content').classList.contains('hidden')) {
-card.classList.add('dragging');
-card.style.transition = 'none'; 
-}
-});
-
-gesture.on('panmove', (e) => {
-if (!card.classList.contains('dragging')) return;
-
-const rotation = e.deltaX * 0.05;
-card.style.transform = `translateX(${e.deltaX}px) rotate(${rotation}deg)`;
-
-const likeOpacity = e.deltaX > 0 ? (e.deltaX / (screenWidth / 4)) : 0;
-const dislikeOpacity = e.deltaX < 0 ? (Math.abs(e.deltaX) / (screenWidth / 4)) : 0;
-card.style.setProperty('--like-opacity', likeOpacity);
-card.style.setProperty('--dislike-opacity', dislikeOpacity);
-});
-
-gesture.on('panend', (e) => {
-if (!card.classList.contains('dragging')) return; 
-
-card.classList.remove('dragging');
-card.style.setProperty('--like-opacity', 0);
-card.style.setProperty('--dislike-opacity', 0);
-
-const absDeltaX = Math.abs(e.deltaX);
-const direction = e.deltaX > 0 ? 'right' : 'left';
-const velocity = Math.abs(e.velocityX);
-
-if (absDeltaX > 100 || velocity > 0.5) {
-triggerSwipe(card, direction); 
-} else {
-card.style.transition = 'transform 0.3s ease'; 
-card.style.transform = `translateY(0px)`;
-}
-});
+    // ... (existing function unchanged) ...
+    const gesture = new Hammer(card);
+    const screenWidth = window.innerWidth;
+    gesture.get('pan').set({ direction: Hammer.DIRECTION_HORIZONTAL });
+    gesture.on('panstart', () => {
+        if (card.querySelector('.expanded-content').classList.contains('hidden')) {
+            card.classList.add('dragging');
+            card.style.transition = 'none'; 
+        }
+    });
+    gesture.on('panmove', (e) => {
+        if (!card.classList.contains('dragging')) return;
+        const rotation = e.deltaX * 0.05;
+        card.style.transform = `translateX(${e.deltaX}px) rotate(${rotation}deg)`;
+        const likeOpacity = e.deltaX > 0 ? (e.deltaX / (screenWidth / 4)) : 0;
+        const dislikeOpacity = e.deltaX < 0 ? (Math.abs(e.deltaX) / (screenWidth / 4)) : 0;
+        card.style.setProperty('--like-opacity', likeOpacity);
+        card.style.setProperty('--dislike-opacity', dislikeOpacity);
+    });
+    gesture.on('panend', (e) => {
+        if (!card.classList.contains('dragging')) return; 
+        card.classList.remove('dragging');
+        card.style.setProperty('--like-opacity', 0);
+        card.style.setProperty('--dislike-opacity', 0);
+        const absDeltaX = Math.abs(e.deltaX);
+        const direction = e.deltaX > 0 ? 'right' : 'left';
+        const velocity = Math.abs(e.velocityX);
+        if (absDeltaX > 100 || velocity > 0.5) {
+            triggerSwipe(card, direction); 
+        } else {
+            card.style.transition = 'transform 0.3s ease'; 
+            card.style.transform = `translateY(0px)`;
+        }
+    });
 }
 
 function triggerSwipe(card, direction) {
-if (card.classList.contains('swiping')) return; 
-card.classList.add('swiping');
-
-const screenWidth = window.innerWidth;
-const interaction = direction === 'right' ? 'like' : 'dislike';
-
-card.style.transition = 'transform 0.3s ease, opacity 0.3s ease'; 
-card.style.transform = `translateX(${direction === 'right' ? screenWidth : -screenWidth}px) rotate(${direction === 'right' ? 30 : -30}deg)`;
-card.style.opacity = 0;
-
-const articleTitle = card.querySelector('.article-title').textContent;
-addInteractionToFooter(articleTitle, interaction);
-
-handleSwipe(card.dataset.id, interaction);
-
-setTimeout(() => {
-card.remove();
-updateCardCounter(); 
-
-const nextCard = cardStack.lastChild;
-if (nextCard) {
-initSwipe(nextCard);
-nextCard.style.transition = 'transform 0.2s ease-out';
-nextCard.style.transform = 'translateY(0px)';
-likeBtn.onclick = () => triggerSwipe(nextCard, 'right');
-dislikeBtn.onclick = () => triggerSwipe(nextCard, 'left');
-} else {
-recsContainer.classList.add('hidden');
-appIntro.classList.add('hidden'); 
-endOfStack.classList.remove('hidden');
-}
-}, 300);
+    // ... (existing function unchanged) ...
+    if (card.classList.contains('swiping')) return; 
+    card.classList.add('swiping');
+    const screenWidth = window.innerWidth;
+    const interaction = direction === 'right' ? 'like' : 'dislike';
+    card.style.transition = 'transform 0.3s ease, opacity 0.3s ease'; 
+    card.style.transform = `translateX(${direction === 'right' ? screenWidth : -screenWidth}px) rotate(${direction === 'right' ? 30 : -30}deg)`;
+    card.style.opacity = 0;
+    const articleTitle = card.querySelector('.article-title').textContent;
+    addInteractionToFooter(articleTitle, interaction);
+    handleSwipe(card.dataset.id, interaction);
+    setTimeout(() => {
+        card.remove();
+        updateCardCounter(); 
+        const nextCard = cardStack.lastChild;
+        if (nextCard) {
+            initSwipe(nextCard);
+            nextCard.style.transition = 'transform 0.2s ease-out';
+            nextCard.style.transform = 'translateY(0px)';
+            likeBtn.onclick = () => triggerSwipe(nextCard, 'right');
+            dislikeBtn.onclick = () => triggerSwipe(nextCard, 'left');
+        } else {
+            recsContainer.classList.add('hidden');
+            appIntro.classList.add('hidden'); 
+            endOfStack.classList.remove('hidden');
+        }
+    }, 300);
 }
 
 
 async function handleSwipe(articleId, interactionType) {
-console.log(`Swiped ${interactionType} on article ${articleId}`);
-try {
-await api.postInteraction(articleId, interactionType);
-} catch (err) {
-console.error(`Failed to post interaction: ${err.message}`);
-}
+    // ... (existing function unchanged) ...
+    console.log(`Swiped ${interactionType} on article ${articleId}`);
+    try {
+        await api.postInteraction(articleId, interactionType);
+    } catch (err) {
+        console.error(`Failed to post interaction: ${err.message}`);
+    }
 }
 
 function addInteractionToFooter(title, interactionType) {
-noInteractions.classList.add('hidden'); 
-
-const isLike = interactionType === 'like';
-const color = isLike ? 'border-green-500' : 'border-red-500';
-const icon = isLike ? '👍' : '👎';
-const typeText = isLike ? 'Like' : 'Dislike';
-
-const el = document.createElement('div');
-el.className = `interaction-item flex-shrink-0 w-48 p-3 bg-gray-800 rounded-md border-l-4 ${color}`;
-el.title = title; 
-el.innerHTML = `
-<div class="text-sm font-semibold truncate mb-1">${icon} ${typeText}</div>
-<div class="text-xs text-gray-400 truncate-2-lines">${title}</div>
-`;
-
-recentInteractions.prepend(el);
+    // ... (existing function unchanged) ...
+    noInteractions.classList.add('hidden'); 
+    const isLike = interactionType === 'like';
+    const color = isLike ? 'border-green-500' : 'border-red-500';
+    const icon = isLike ? '👍' : '👎';
+    const typeText = isLike ? 'Like' : 'Dislike';
+    const el = document.createElement('div');
+    el.className = `interaction-item flex-shrink-0 w-48 p-3 bg-gray-800 rounded-md border-l-4 ${color}`;
+    el.title = title; 
+    el.innerHTML = `
+        <div class="text-sm font-semibold truncate mb-1">${icon} ${typeText}</div>
+        <div class="text-xs text-gray-400 truncate-2-lines">${title}</div>
+    `;
+    recentInteractions.prepend(el);
 }
 
 function renderRecentInteractions(interactions) {
-recentInteractions.innerHTML = ''; 
-if (!interactions || interactions.length === 0) {
-noInteractions.classList.remove('hidden');
-return;
-}
-
-noInteractions.classList.add('hidden');
-
-interactions.reverse().forEach(item => {
-addInteractionToFooter(item.articles.title, item.interaction_type);
-});
+    // ... (existing function unchanged) ...
+    recentInteractions.innerHTML = ''; 
+    if (!interactions || interactions.length === 0) {
+        noInteractions.classList.remove('hidden');
+        return;
+    }
+    noInteractions.classList.add('hidden');
+    interactions.reverse().forEach(item => {
+        addInteractionToFooter(item.articles.title, item.interaction_type);
+    });
 }
 
 function handleQuotaExceeded() {
-console.warn("Quota exceeded (403).");
-loadingContainer.classList.add('hidden');
-cardStack.innerHTML = ''; 
-swipeControls.classList.add('hidden');
-cardCounter.classList.add('hidden');
-appIntro.classList.add('hidden');
-recsContainer.classList.add('hidden'); 
-
-endOfStack.classList.remove('hidden'); 
-endOfStack.querySelector('h3').textContent = "Daily Limit Reached";
-endOfStack.querySelector('p').textContent = "You've used all your recommendations for today.";
-
-const quotaMsgEl = endOfStack.querySelector('#quota-message');
-if (quotaMsgEl) {
-quotaMsgEl.textContent = "Please check back tomorrow for more!";
-quotaMsgEl.classList.remove('hidden');
+    // ... (existing function unchanged) ...
+    console.warn("Quota exceeded (403).");
+    loadingContainer.classList.add('hidden');
+    cardStack.innerHTML = ''; 
+    swipeControls.classList.add('hidden');
+    cardCounter.classList.add('hidden');
+    appIntro.classList.add('hidden');
+    recsContainer.classList.add('hidden'); 
+    endOfStack.classList.remove('hidden'); 
+    endOfStack.querySelector('h3').textContent = "Daily Limit Reached";
+    endOfStack.querySelector('p').textContent = "You've used all your recommendations for today.";
+    const quotaMsgEl = endOfStack.querySelector('#quota-message');
+    if (quotaMsgEl) {
+        quotaMsgEl.textContent = "Please check back tomorrow for more!";
+        quotaMsgEl.classList.remove('hidden');
+    }
+    refreshBtn.disabled = true;
+    refreshBtn.textContent = "Limit Reached";
+    refreshBtn.classList.add('opacity-50', 'cursor-not-allowed');
 }
 
-refreshBtn.disabled = true;
-refreshBtn.textContent = "Limit Reached";
-refreshBtn.classList.add('opacity-50', 'cursor-not-allowed');
-}
 
-
-// === BOOTSTRAP ===
+// === BOOTSTRAP === (Added Modal Listeners)
 loginBtn.addEventListener('click', handleLogin);
 savePersonaBtn.addEventListener('click', handleSavePersona);
 refreshBtn.addEventListener('click', loadRecommendations);
-
 logoutBtn.addEventListener('click', () => {
-api.logout();
-showLogin();
+    api.logout();
+    showLogin();
 });
+
+// *** NEW MODAL LISTENERS ***
+editPersonaBtn.addEventListener('click', async () => {
+    // Show modal, pre-fill with latest persona
+    try {
+        const me = await api.getMe(); // Fetch fresh data
+        const { interest, persona } = splitPersona(me.base_persona);
+        modalInterestInput.value = interest;
+        modalPersonaInput.value = persona;
+        personaEditModal.classList.remove('hidden');
+    } catch (err) {
+        alert(`Error fetching persona: ${err.message}`);
+    }
+});
+
+modalCancelBtn.addEventListener('click', () => {
+    personaEditModal.classList.add('hidden');
+});
+
+modalSaveBtn.addEventListener('click', handleUpdatePersona);
+
 
 // Start the app
 initApp();
 </script>
 </body>
 </html>
-

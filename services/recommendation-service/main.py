@@ -88,7 +88,7 @@ def get_freshness_score(published_date_str: str) -> float:
         
         return 1.0 - (days_old / 14.0)
     except:
-        return 0.5
+        return 0.0
 
 async def get_dynamic_query_vector(user_id: str) -> np.ndarray:
     """

@@ -12,9 +12,42 @@
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
     <style>
-        /* ... (Your existing styles for spinner, badges, etc. remain) ... */
+        /* Base styles */
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #fff;
+            width: 32px;
+            height: 32px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .truncate-2-lines {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        .interaction-item {
+            transition: all 0.2s ease-in-out;
+            position: relative;
+        }
+        .interaction-item:hover {
+            transform: translateY(-5px);
+            background-color: #374151; /* bg-gray-700 */
+            z-index: 50;
+            height: auto;
+        }
+        .interaction-item:hover .truncate-2-lines {
+            -webkit-line-clamp: unset;
+            white-space: normal;
+        }
         
-        /* === MODIFIED STYLES === */
+        /* === MODIFIED STYLES for Card Stack & Popping === */
         .card-stack {
             position: relative;
             width: 90vw;
@@ -45,34 +78,54 @@
             transition: none;
             cursor: grabbing;
         }
+        .swipe-card .like-badge, .swipe-card .dislike-badge {
+            position: absolute;
+            top: 20px;
+            font-size: 2rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .swipe-card .like-badge {
+            left: 20px;
+            color: #10B981; /* green-500 */
+            border: 4px solid #10B981;
+            transform: rotate(-20deg);
+        }
+        .swipe-card .dislike-badge {
+            right: 20px;
+            color: #EF4444; /* red-500 */
+            border: 4px solid #EF4444;
+            transform: rotate(20deg);
+        }
+        .swipe-card.dragging .like-badge {
+            opacity: var(--like-opacity, 0);
+        }
+        .swipe-card.dragging .dislike-badge {
+            opacity: var(--dislike-opacity, 0);
+        }
+
+        /* Expanded card content */
+        .expanded-content {
+            height: 100%;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
         /* Style for the generative loading text */
         #loading-text {
             transition: opacity 0.4s ease-in-out;
             min-height: 40px; /* Prevents layout shift */
             display: inline-block;
             text-align: center;
-        }
-        /* ... (Rest of your existing styles: .like-badge, .spinner, .expanded-content, etc. remain unchanged) ... */
-        .truncate-2-lines {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-        }
-        .interaction-item {
-            transition: all 0.2s ease-in-out;
-            position: relative;
-        }
-        .interaction-item:hover {
-            transform: translateY(-5px);
-            background-color: #374151; /* bg-gray-700 */
-            z-index: 50;
-            height: auto;
-        }
-        .interaction-item:hover .truncate-2-lines {
-            -webkit-line-clamp: unset;
-            white-space: normal;
         }
     </style>
 </head>
@@ -102,7 +155,7 @@
         </header>
 
         <main class="flex-1 flex flex-col items-center justify-start p-4 pt-12 pb-8 overflow-y-auto">
-            
+        
             <div id="persona-setup" class="w-full max-w-md p-6 bg-gray-800 rounded-lg shadow-lg text-center hidden">
                 <h2 class="text-2xl font-semibold mb-4">Welcome!</h2>
                 <p class="text-gray-300 mb-6">Tell us about yourself to get personalized news.</p>
@@ -120,13 +173,18 @@
         
             <div id="recommendations-container" class="hidden w-full relative">
                 
+                <!-- === NEW/MODIFIED FEEDBACK ELEMENTS === -->
                 <div id="card-counter" class="text-center text-gray-500 text-sm mb-1 h-5"></div>
+                <!-- This element will show the "I'm learning" feedback -->
                 <div id="swipe-feedback" class="text-center text-blue-300 text-sm mb-2 h-5 transition-opacity duration-300 opacity-0"></div>
 
+                <!-- This loading container is modified for the generative text -->
                 <div id="loading-container" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex flex-col items-center hidden" style="width: 300px;">
                     <div id="loading-spinner" class="spinner"></div>
                     <p id="loading-text" class="text-gray-400 text-sm mt-4"></p>
                 </div>
+                <!-- ============================ -->
+
                 <div id="card-stack" class="card-stack"></div>
                 
                 <div id="swipe-controls" class="mt-16 flex justify-center items-center space-x-12 hidden">
@@ -140,6 +198,7 @@
                 </div>
             </div>
             
+            <!-- === MODIFIED END OF STACK TEXT === -->
             <div id="end-of-stack" class="hidden text-center text-gray-400 p-8 max-w-md mx-auto">
                 <h3 class="text-2xl font-semibold mb-4">Your Daily Briefing is Ready</h3>
                 <p class="mb-6">We believe in **quality over quantity**. Instead of an infinite scroll, we deliver your top 5, most relevant articles. Your feedback helps sharpen tomorrow's briefing.</p>
@@ -148,7 +207,8 @@
                     Check for more
                 </button>
             </div>
-            </main>
+            <!-- ================================ -->
+        </main>
 
         <footer id="footer-dashboard" class="p-4 border-t border-gray-700 hidden w-full">
             <h3 class="text-sm font-semibold text-gray-400 uppercase mb-3">Recent Interactions</h3>
@@ -157,6 +217,7 @@
             </div>
         </footer>
     </div>
+
     <div id="persona-edit-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 hidden">
         <div class="w-full max-w-md p-6 bg-gray-800 rounded-lg shadow-lg">
             <h2 class="text-2xl font-semibold mb-4">Edit Your Persona</h2>
@@ -191,6 +252,7 @@
                 </div>
                 <h3 class="article-title text-2xl font-bold text-white mb-4"></h3>
                 <p class="article-summary text-gray-300 text-lg"></p>
+                <!-- This reason remains on the front, but hidden as per your original code -->
                 <p class="article-reason text-gray-400 text-sm italic mt-4 hidden"></p>
             </div>
             <div class="like-badge">LIKE</div>
@@ -199,6 +261,7 @@
                 <div>
                     <h3 class="text-2xl font-bold text-white mb-4"></h3>
                     <p class="text-gray-300 mb-4"></p>
+                    <!-- This is the "why" on the back of the card -->
                     <p class="text-gray-400 text-sm italic mb-6 border-l-2 border-blue-500 pl-4"></p>
                     <a href="" target="_blank" rel="noopener noreferrer" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition duration-200">
                         Read Full Article
@@ -210,7 +273,7 @@
     </template>
 
 <script>
-// === CONFIG === (Unchanged)
+// === CONFIG ===
 const API_BASE_URL = "https://api-whatsgood.abhay-arora.com";
 
 // === STATE ===
@@ -218,23 +281,39 @@ let API_KEY = null;
 let USER_ID = null;
 let currentArticles = [];
 let totalCardsInStack = 0; 
-let loadingInterval = null; // <-- For generative loading text
-let swipeFeedbackTimer = null; // <-- For swipe feedback message
+let loadingInterval = null; // For generative loading text
+let swipeFeedbackTimer = null; // For swipe feedback message
 
 // === DOM ELEMENTS ===
+// This is the section that defines all the variables.
+// By doing this here, they are all available to the
+// functions and event listeners below.
 const loginScreen = document.getElementById('login-screen');
-// ... (all other DOM elements) ...
+const dashboardScreen = document.getElementById('dashboard-screen');
+const apiKeyInput = document.getElementById('api-key-input');
+const loginBtn = document.getElementById('login-btn');
+const loginError = document.getElementById('login-error');
+const logoutBtn = document.getElementById('logout-btn');
+const personaSetup = document.getElementById('persona-setup');
+const personaInput = document.getElementById('persona-input');
+const savePersonaBtn = document.getElementById('save-persona-btn');
+const recsContainer = document.getElementById('recommendations-container');
 const cardStack = document.getElementById('card-stack');
 const loadingContainer = document.getElementById('loading-container');
-const loadingText = document.getElementById('loading-text'); // <-- Get loading text el
+const loadingText = document.getElementById('loading-text');
 const endOfStack = document.getElementById('end-of-stack');
-// ...
+const refreshBtn = document.getElementById('refresh-btn');
+const footerDashboard = document.getElementById('footer-dashboard');
+const recentInteractions = document.getElementById('recent-interactions');
+const noInteractions = document.getElementById('no-interactions');
+const articleTemplate = document.getElementById('article-template');
+const interestInput = document.getElementById('interest-input');
+const appIntro = document.getElementById('app-intro');
 const cardCounter = document.getElementById('card-counter');
-const swipeFeedback = document.getElementById('swipe-feedback'); // <-- Get swipe feedback el
+const swipeFeedback = document.getElementById('swipe-feedback');
 const swipeControls = document.getElementById('swipe-controls');
 let likeBtn = document.getElementById('like-btn'); 
 let dislikeBtn = document.getElementById('dislike-btn'); 
-// ... (all other DOM elements) ...
 const editPersonaBtn = document.getElementById('edit-persona-btn');
 const personaEditModal = document.getElementById('persona-edit-modal');
 const modalInterestInput = document.getElementById('modal-interest-input');
@@ -243,9 +322,8 @@ const modalCancelBtn = document.getElementById('modal-cancel-btn');
 const modalSaveBtn = document.getElementById('modal-save-btn');
 
 
-// === API CLIENT === (Unchanged)
+// === API CLIENT ===
 class ApiClient {
-    // ... (Your entire ApiClient class remains unchanged) ...
     constructor() {
         this.apiKey = localStorage.getItem('whatsgood_api_key');
         this.userId = localStorage.getItem('whatsgood_user_id');
@@ -310,9 +388,8 @@ const api = new ApiClient();
 
 // === APP LOGIC ===
 
-// --- Helper to parse persona --- (Unchanged)
+// --- Helper to parse persona ---
 function splitPersona(basePersona) {
-    // ... (existing function unchanged) ...
     if (!basePersona) return { interest: '', persona: '' };
     const parts = basePersona.split(' | ');
     if (parts.length > 1) {
@@ -321,7 +398,6 @@ function splitPersona(basePersona) {
     return { interest: '', persona: basePersona }; // Fallback
 }
 
-// --- initApp & showLogin --- (Unchanged)
 function initApp() {
     if (api.isLoggedIn()) {
         showDashboard();
@@ -329,14 +405,13 @@ function initApp() {
         showLogin();
     }
 }
+
 function showLogin() {
     dashboardScreen.classList.add('hidden');
     loginScreen.classList.remove('hidden');
 }
 
-// --- showDashboard --- (Unchanged)
 async function showDashboard() {
-    // ... (existing function unchanged) ...
     loginScreen.classList.add('hidden');
     dashboardScreen.classList.remove('hidden');
 
@@ -374,7 +449,6 @@ async function showDashboard() {
             loadRecommendations();
         }
     } catch (err) {
-        // ... (existing error handling) ...
         console.error(err);
         if (err.message.includes('403')) {
             handleQuotaExceeded(); 
@@ -390,9 +464,7 @@ async function showDashboard() {
     }
 }
 
-// --- handleLogin & handleSavePersona & handleUpdatePersona --- (Unchanged)
 async function handleLogin() {
-    // ... (existing function unchanged) ...
     const key = apiKeyInput.value;
     if (!key) return;
     loginError.textContent = "";
@@ -404,8 +476,8 @@ async function handleLogin() {
         loginError.textContent = err.message;
     }
 }
+
 async function handleSavePersona() {
-    // ... (existing function unchanged) ...
     const interest = interestInput.value;
     const persona = personaInput.value;
     if (!interest || !persona) {
@@ -420,17 +492,21 @@ async function handleSavePersona() {
         alert(`Error saving persona: ${err.message}`);
     }
 }
+
 async function handleUpdatePersona() {
-    // ... (existing function unchanged) ...
     const interest = modalInterestInput.value;
     const persona = modalPersonaInput.value;
     if (!interest || !persona) {
         alert("Please fill out both your main interest and your persona description.");
         return;
     }
+
     const combinedPersona = `${interest} | ${persona}`;
+    
+    // Show saving state
     modalSaveBtn.disabled = true;
     modalSaveBtn.textContent = "Saving...";
+
     try {
         await api.setPersona(combinedPersona);
         personaEditModal.classList.add('hidden'); // Hide modal
@@ -444,7 +520,7 @@ async function handleUpdatePersona() {
 }
 
 
-// *** MODIFIED: Generative Loading ***
+// *** NEW: Generative Loading ***
 function startGenerativeLoadingText() {
     const messages = [
         "Analyzing your persona and recent swipes...",
@@ -480,7 +556,7 @@ function stopGenerativeLoadingText() {
 
 // *** MODIFIED: loadRecommendations ***
 async function loadRecommendations() {
-    // ... (Clear existing state) ...
+    // Clear existing state
     cardStack.innerHTML = '';
     endOfStack.classList.add('hidden'); 
     cardCounter.classList.add('hidden'); 
@@ -488,19 +564,22 @@ async function loadRecommendations() {
     appIntro.classList.add('hidden'); 
     recsContainer.classList.remove('hidden'); 
     
-    // *** START GENERATIVE LOADING ***
+    // START GENERATIVE LOADING
     loadingContainer.classList.remove('hidden');
     startGenerativeLoadingText();
 
-    // ... (Reset buttons and quota messages) ...
+    // Reset buttons and quota messages
     refreshBtn.disabled = false;
-    // ...
+    refreshBtn.textContent = "Check for more";
+    refreshBtn.classList.remove('opacity-50', 'cursor-not-allowed');
     const quotaMsgEl = endOfStack.querySelector('#quota-message');
     if (quotaMsgEl) quotaMsgEl.classList.add('hidden');
-    // ... (Clone and replace buttons) ...
+
+    // Clone and replace buttons to remove old listeners
     const newLikeBtn = likeBtn.cloneNode(true);
     likeBtn.parentNode.replaceChild(newLikeBtn, likeBtn);
     likeBtn = newLikeBtn; 
+
     const newDislikeBtn = dislikeBtn.cloneNode(true);
     dislikeBtn.parentNode.replaceChild(newDislikeBtn, dislikeBtn);
     dislikeBtn = newDislikeBtn; 
@@ -509,7 +588,7 @@ async function loadRecommendations() {
         const data = await api.getRecommendations();
         currentArticles = data.recommendations;
         
-        // *** STOP GENERATIVE LOADING ***
+        // STOP GENERATIVE LOADING
         stopGenerativeLoadingText();
         loadingContainer.classList.add('hidden');
 
@@ -523,13 +602,13 @@ async function loadRecommendations() {
             recsContainer.classList.add('hidden'); 
             appIntro.classList.add('hidden');
             endOfStack.classList.remove('hidden');
-            // *** Use NEW end-of-stack copy ***
+            // Use NEW end-of-stack copy
             endOfStack.querySelector('h3').textContent = "Your Daily Briefing is Ready";
             endOfStack.querySelector('p').textContent = "You're all caught up for now. Your feedback helps sharpen tomorrow's briefing.";
         }
     } catch (err) {
         console.error(err);
-        // *** STOP GENERATIVE LOADING (on error) ***
+        // STOP GENERATIVE LOADING (on error)
         stopGenerativeLoadingText();
         loadingContainer.classList.add('hidden');
         if (err.message.includes('403')) {
@@ -573,7 +652,6 @@ function renderCardStack() {
 
 
 function updateCardCounter() {
-    // ... (existing function unchanged) ...
     const remainingCards = cardStack.querySelectorAll('.swipe-card').length;
     if (remainingCards > 0 && totalCardsInStack > 0) {
         cardCounter.textContent = `Card ${totalCardsInStack - remainingCards + 1} of ${totalCardsInStack}`;
@@ -733,9 +811,7 @@ function triggerSwipe(card, direction) {
 }
 
 
-// --- handleSwipe & addInteractionToFooter & renderRecentInteractions --- (Unchanged)
 async function handleSwipe(articleId, interactionType) {
-    // ... (existing function unchanged) ...
     console.log(`Swiped ${interactionType} on article ${articleId}`);
     try {
         await api.postInteraction(articleId, interactionType);
@@ -743,8 +819,8 @@ async function handleSwipe(articleId, interactionType) {
         console.error(`Failed to post interaction: ${err.message}`);
     }
 }
+
 function addInteractionToFooter(title, interactionType) {
-    // ... (existing function unchanged) ...
     noInteractions.classList.add('hidden'); 
     const isLike = interactionType === 'like';
     const color = isLike ? 'border-green-500' : 'border-red-500';
@@ -759,8 +835,8 @@ function addInteractionToFooter(title, interactionType) {
     `;
     recentInteractions.prepend(el);
 }
+
 function renderRecentInteractions(interactions) {
-    // ... (existing function unchanged) ...
     recentInteractions.innerHTML = ''; 
     if (!interactions || interactions.length === 0) {
         noInteractions.classList.remove('hidden');
@@ -772,9 +848,7 @@ function renderRecentInteractions(interactions) {
     });
 }
 
-// --- handleQuotaExceeded --- (Unchanged, but benefits from new End of Stack copy)
 function handleQuotaExceeded() {
-    // ... (existing function unchanged) ...
     console.warn("Quota exceeded (403).");
     loadingContainer.classList.add('hidden');
     cardStack.innerHTML = ''; 
@@ -784,7 +858,6 @@ function handleQuotaExceeded() {
     recsContainer.classList.add('hidden'); 
     endOfStack.classList.remove('hidden'); 
     
-    // *** This copy is more aligned now ***
     endOfStack.querySelector('h3').textContent = "Daily Limit Reached";
     endOfStack.querySelector('p').textContent = "You've used all your recommendations for today.";
     
@@ -799,7 +872,9 @@ function handleQuotaExceeded() {
 }
 
 
-// === BOOTSTRAP === (Unchanged)
+// === BOOTSTRAP ===
+// All event listeners are added here, after all
+// functions and variables have been defined.
 loginBtn.addEventListener('click', handleLogin);
 savePersonaBtn.addEventListener('click', handleSavePersona);
 refreshBtn.addEventListener('click', loadRecommendations);
@@ -807,8 +882,9 @@ logoutBtn.addEventListener('click', () => {
     api.logout();
     showLogin();
 });
+
 editPersonaBtn.addEventListener('click', async () => {
-    // ... (existing function unchanged) ...
+    // Show modal, pre-fill with latest persona
     try {
         const me = await api.getMe(); // Fetch fresh data
         const { interest, persona } = splitPersona(me.base_persona);
@@ -819,9 +895,11 @@ editPersonaBtn.addEventListener('click', async () => {
         alert(`Error fetching persona: ${err.message}`);
     }
 });
+
 modalCancelBtn.addEventListener('click', () => {
     personaEditModal.classList.add('hidden');
 });
+
 modalSaveBtn.addEventListener('click', handleUpdatePersona);
 
 

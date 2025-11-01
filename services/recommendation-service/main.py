@@ -279,23 +279,25 @@ async def get_recommendations(user_id: str):
             context_block += f"Content: {article['content'][:1500]}...\n\n"
 
         # --- NEW PROMPT ---
-        system_prompt = "You are a sharp news curator writing directly to a user. Your style is concise, impactful, and insightful, like a high-quality news digest. You avoid filler words and get straight to the point."
+        system_prompt = "You are an expert news editor and analyst. Your job is to read a full article and write a single, sharp, insightful summary (the 'hook') that gets straight to the core of the story. You write directly to a smart reader, without fluff or robotic phrases."
+
         human_prompt = f"""
 My user's persona is: "{user_persona_text}"
 
 Based *only* on the user's persona and the 5 articles provided below, do the following:
 
-1.  For each article, write a single, **crisp "summary" sentence (max 20-25 words)**. This sentence must capture the absolute core takeaway or most impactful point of the article. It should subtly align with the user's interests but feel like a standalone, objective insight. **Do not mention the user or their persona.** Avoid hyphens and robotic phrasing. Use strong verbs.
-2.  For each article, write a "reason" sentence (1-2 sentences). This is an internal justification explaining the specific link between the article's core takeaway and the user's persona.
-3.  Return your response as a single, valid JSON array.
-4.  The JSON array must contain 5 objects. Each object must have *only* these keys: "id", "title", "summary", "reason".
-5.  Use the exact "id" and "title" provided for each article in the context.
+1.  Read the **Full Text Snippet** for each article to understand its core argument, not just its topic.
+2.  Write a single, concise "summary" sentence (15-30 words). This sentence must be a powerful hook that captures the **most important takeaway, key statistic, or surprising insight** from the text.
+3.  **DO NOT** just describe what the article is "about" (e.g., "This article is about...").
+4.  **DO NOT** mention the user or their persona in the summary. Your tone should be smart, neutral, and authoritative.
+5.  Write a "reason" sentence (1-2 sentences). This is your internal note explaining the *specific link* between the article's core takeaway and the user's persona.
+6.  Return your response as a single, valid JSON array.
+7.  The JSON array must contain 5 objects. Each object must have *only* these keys: "id", "title", "summary", "reason".
+8.  Use the exact "id" and "title" provided for each article in the context.
 
 **Examples of desired crisp summary style:**
-
-* *Article about cricket redemption:* "Mental resilience proves key as cricket teams navigate the high-stakes pressure of seeking redemption after major setbacks."
-* *Article about new MLOps tool:* "A new open-source framework aims to significantly simplify the deployment pipeline for large language models."
-* *Article about sustainable travel in Europe:* "Mindful travel choices are gaining momentum, potentially reshaping the future of tourism across popular European destinations."
+* *Article about Google/Wiz:* "Google is reportedly in talks to acquire cybersecurity startup Wiz for $23 billion, marking its largest acquisition ever."
+* *Article about crypto volume:* "Global crypto trading volume is projected to hit $108 trillion in 2024, a 90% increase from 2022 levels, with Europe leading the transactions."
 
 **Here is the context for the 5 articles you need to process:**
 {context_block}

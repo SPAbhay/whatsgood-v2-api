@@ -47,12 +47,10 @@
             white-space: normal;
         }
         
-        /* === MODIFIED STYLES for Card Stack === */
         .card-stack {
             position: relative;
             width: 90vw;
             height: 40vh; 
-            /* === MODIFIED: Increased width === */
             max-width: 440px;
             max-height: 320px; 
             margin: auto;
@@ -106,7 +104,6 @@
             opacity: var(--dislike-opacity, 0);
         }
 
-        /* Expanded card content */
         .expanded-content {
             height: 100%;
             overflow-y: auto;
@@ -118,7 +115,6 @@
             justify-content: space-between;
         }
 
-        /* Style for the generative loading text */
         #loading-text {
             transition: opacity 0.4s ease-in-out;
             min-height: 40px;
@@ -190,6 +186,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                         </svg>
                     </a>
+                    
                     <button id="like-btn" class="w-16 h-16 rounded-full bg-gray-800 border-2 border-green-500 text-green-500 flex items-center justify-center text-3xl font-bold shadow-lg transform active:scale-90 transition-transform">&#10003;</button>
                 </div>
             </div>
@@ -255,9 +252,7 @@
                     <h3 class="text-xl font-bold text-white mb-4"></h3>
                     <p class="text-gray-300 mb-4"></p>
                     <p class="text-gray-400 text-sm italic mb-6 border-l-2 border-blue-500 pl-4"></p>
-                    <a href="" target="_blank" rel="noopener noreferrer" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition duration-200">
-                        Read Full Article
-                    </a>
+                    <!-- === REMOVED "Read Full Article" button from here === -->
                 </div>
                 <button class="close-expanded-btn mt-6 text-gray-400 hover:text-white">Close</button>
             </div>
@@ -273,8 +268,24 @@ let API_KEY = null;
 let USER_ID = null;
 let currentArticles = [];
 let totalCardsInStack = 0; 
-let loadingInterval = null; // For generative loading text
-let swipeFeedbackTimer = null; // For swipe feedback message
+let loadingInterval = null;
+let swipeFeedbackTimer = null;
+
+// === NEW: Randomized Feedback Messages ===
+const LIKE_MESSAGES = [
+    "Got it. I'll find more like this.",
+    "Great! Adjusting your recommendations.",
+    "Okay, noted. More of this coming up.",
+    "Good to know. I'm learning your taste.",
+    "Thanks! I'll look for similar articles."
+];
+const DISLIKE_MESSAGES = [
+    "Okay. I'll adjust your feed.",
+    "Noted. I won't show you articles like this.",
+    "Understood. Less of this in the future.",
+    "Thanks for the feedback. Adjusting...",
+    "Right. I'll avoid this topic."
+];
 
 // === DOM ELEMENTS ===
 const loginScreen = document.getElementById('login-screen');
@@ -309,7 +320,6 @@ const modalInterestInput = document.getElementById('modal-interest-input');
 const modalPersonaInput = document.getElementById('modal-persona-input');
 const modalCancelBtn = document.getElementById('modal-cancel-btn');
 const modalSaveBtn = document.getElementById('modal-save-btn');
-// === NEW DOM ELEMENT ===
 const readArticleBtn = document.getElementById('read-article-btn');
 
 
@@ -378,6 +388,11 @@ class ApiClient {
 const api = new ApiClient();
 
 // === APP LOGIC ===
+
+// === NEW: Helper function for random messages ===
+function getRandomMessage(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
 
 function splitPersona(basePersona) {
     if (!basePersona) return { interest: '', persona: '' };
@@ -594,7 +609,6 @@ async function loadRecommendations() {
     }
 }
 
-// === MODIFIED: renderCardStack ===
 function renderCardStack() {
     const total = currentArticles.length; 
     currentArticles.reverse().forEach((article, index) => {
@@ -617,7 +631,6 @@ function renderCardStack() {
     if (topCard) {
         topCard.style.opacity = 1;
         initSwipe(topCard);
-        // === NEW: Set initial href for the article link ===
         readArticleBtn.href = topCard.dataset.url;
         likeBtn.onclick = () => triggerSwipe(topCard, 'right');
         dislikeBtn.onclick = () => triggerSwipe(topCard, 'left');
@@ -649,12 +662,15 @@ function createCardElement(article) {
     const cardContent = card.querySelector('.card-content');
     const expandedContent = card.querySelector('.expanded-content');
     const closeBtn = card.querySelector('.close-expanded-btn');
-    const readLink = expandedContent.querySelector('a');
+    
+    // === MODIFIED: No longer need the internal readLink ===
+    // const readLink = expandedContent.querySelector('a'); 
 
     expandedContent.querySelector('h3').textContent = article.title;
     expandedContent.querySelector('p:first-of-type').textContent = article.summary;
     expandedContent.querySelector('p:last-of-type').textContent = article.reason;
-    expandedContent.querySelector('a').href = article.url;
+    // === REMOVED: No 'a' tag to set href for here anymore ===
+    // expandedContent.querySelector('a').href = article.url; 
 
     cardContent.addEventListener('click', () => {
         if (!card.classList.contains('dragging')) {
@@ -673,8 +689,11 @@ function createCardElement(article) {
         closeExpandedView();
     });
 
+    // === MODIFIED: Simplified click-to-close logic ===
     expandedContent.addEventListener('click', (e) => {
-        if (e.target !== readLink && !readLink.contains(e.target)) {
+        // Click anywhere on the expanded content (that isn't the close button)
+        // to close the view.
+        if (e.target !== closeBtn && !closeBtn.contains(e.target)) {
             e.stopPropagation();
             closeExpandedView();
         }
@@ -721,7 +740,7 @@ function initSwipe(card) {
     });
 }
 
-// === MODIFIED: triggerSwipe ===
+// === MODIFIED: triggerSwipe (for randomized feedback) ===
 function triggerSwipe(card, direction) {
     if (card.classList.contains('swiping')) return; 
     card.classList.add('swiping');
@@ -737,12 +756,19 @@ function triggerSwipe(card, direction) {
     addInteractionToFooter(articleTitle, interaction);
     handleSwipe(card.dataset.id, interaction);
 
+    // *** NEW: Show randomized "I'm learning" feedback ***
     if (swipeFeedbackTimer) clearTimeout(swipeFeedbackTimer);
-    swipeFeedback.textContent = interaction === 'like' ? "Got it. I'll find more like this." : "Okay. I'll adjust your feed.";
+    
+    if (interaction === 'like') {
+        swipeFeedback.textContent = getRandomMessage(LIKE_MESSAGES);
+    } else {
+        swipeFeedback.textContent = getRandomMessage(DISLIKE_MESSAGES);
+    }
+    
     swipeFeedback.style.opacity = 1;
     swipeFeedbackTimer = setTimeout(() => {
         swipeFeedback.style.opacity = 0;
-    }, 1500);
+    }, 1500); // Hide after 1.5 seconds
 
 
     setTimeout(() => {
@@ -757,7 +783,6 @@ function triggerSwipe(card, direction) {
             nextCard.dataset.originalTransform = 'translateY(0px) scale(1)';
             
             initSwipe(nextCard);
-            // === NEW: Update href for the next card ===
             readArticleBtn.href = nextCard.dataset.url;
             likeBtn.onclick = () => triggerSwipe(nextCard, 'right');
             dislikeBtn.onclick = () => triggerSwipe(nextCard, 'left');
@@ -768,7 +793,6 @@ function triggerSwipe(card, direction) {
             endOfStack.classList.remove('hidden');
             endOfStack.querySelector('h3').textContent = "Your Daily Briefing is Ready";
             endOfStack.querySelector('p').textContent = "You've reviewed your top 5 articles. Your feedback helps sharpen tomorrow's briefing.";
-            // === NEW: Reset href when stack is empty ===
             readArticleBtn.href = "#";
         }
     }, 300);

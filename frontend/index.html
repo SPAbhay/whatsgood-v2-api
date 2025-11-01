@@ -154,7 +154,7 @@
             </div>
         </header>
 
-        <main class="flex-1 flex flex-col items-center justify-start p-4 pt-12 pb-8 overflow-y-auto">
+        <main class="flex-1 flex flex-col items-center justify-center p-4 overflow-y-hidden">
         
             <div id="persona-setup" class="w-full max-w-md p-6 bg-gray-800 rounded-lg shadow-lg text-center hidden">
                 <h2 class="text-2xl font-semibold mb-4">Welcome!</h2>
@@ -173,21 +173,17 @@
         
             <div id="recommendations-container" class="hidden w-full relative">
                 
-                <!-- === NEW/MODIFIED FEEDBACK ELEMENTS === -->
                 <div id="card-counter" class="text-center text-gray-500 text-sm mb-1 h-5"></div>
-                <!-- This element will show the "I'm learning" feedback -->
                 <div id="swipe-feedback" class="text-center text-blue-300 text-sm mb-2 h-5 transition-opacity duration-300 opacity-0"></div>
 
-                <!-- This loading container is modified for the generative text -->
                 <div id="loading-container" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex flex-col items-center hidden" style="width: 300px;">
                     <div id="loading-spinner" class="spinner"></div>
                     <p id="loading-text" class="text-gray-400 text-sm mt-4"></p>
                 </div>
-                <!-- ============================ -->
 
                 <div id="card-stack" class="card-stack"></div>
                 
-                <div id="swipe-controls" class="mt-16 flex justify-center items-center space-x-12 hidden">
+                <div id="swipe-controls" class="mt-8 flex justify-center items-center space-x-12 hidden">
                     <button id="dislike-btn" class="w-16 h-16 rounded-full bg-gray-800 border-2 border-red-500 text-red-500 flex items-center justify-center text-3xl font-bold shadow-lg transform active:scale-90 transition-transform">&times;</button>
                     <div class="text-gray-500 text-sm flex items-center space-x-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18" /></svg>
@@ -198,7 +194,6 @@
                 </div>
             </div>
             
-            <!-- === MODIFIED END OF STACK TEXT === -->
             <div id="end-of-stack" class="hidden text-center text-gray-400 p-8 max-w-md mx-auto">
                 <h3 class="text-2xl font-semibold mb-4">Your Daily Briefing is Ready</h3>
                 <p class="mb-6">We believe in **quality over quantity**. Instead of an infinite scroll, we deliver your top 5, most relevant articles. Your feedback helps sharpen tomorrow's briefing.</p>
@@ -207,7 +202,6 @@
                     Check for more
                 </button>
             </div>
-            <!-- ================================ -->
         </main>
 
         <footer id="footer-dashboard" class="p-4 border-t border-gray-700 hidden w-full">
@@ -252,7 +246,6 @@
                 </div>
                 <h3 class="article-title text-2xl font-bold text-white mb-4"></h3>
                 <p class="article-summary text-gray-300 text-lg"></p>
-                <!-- This reason remains on the front, but hidden as per your original code -->
                 <p class="article-reason text-gray-400 text-sm italic mt-4 hidden"></p>
             </div>
             <div class="like-badge">LIKE</div>
@@ -261,7 +254,6 @@
                 <div>
                     <h3 class="text-2xl font-bold text-white mb-4"></h3>
                     <p class="text-gray-300 mb-4"></p>
-                    <!-- This is the "why" on the back of the card -->
                     <p class="text-gray-400 text-sm italic mb-6 border-l-2 border-blue-500 pl-4"></p>
                     <a href="" target="_blank" rel="noopener noreferrer" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition duration-200">
                         Read Full Article
@@ -285,9 +277,6 @@ let loadingInterval = null; // For generative loading text
 let swipeFeedbackTimer = null; // For swipe feedback message
 
 // === DOM ELEMENTS ===
-// This is the section that defines all the variables.
-// By doing this here, they are all available to the
-// functions and event listeners below.
 const loginScreen = document.getElementById('login-screen');
 const dashboardScreen = document.getElementById('dashboard-screen');
 const apiKeyInput = document.getElementById('api-key-input');
@@ -388,14 +377,13 @@ const api = new ApiClient();
 
 // === APP LOGIC ===
 
-// --- Helper to parse persona ---
 function splitPersona(basePersona) {
     if (!basePersona) return { interest: '', persona: '' };
     const parts = basePersona.split(' | ');
     if (parts.length > 1) {
         return { interest: parts[0], persona: parts[1] };
     }
-    return { interest: '', persona: basePersona }; // Fallback
+    return { interest: '', persona: basePersona };
 }
 
 function initApp() {
@@ -417,12 +405,11 @@ async function showDashboard() {
 
     try {
         const me = await api.getMe();
-        USER_ID = me.user_id; // Set global USER_ID
-        api.userId = me.user_id; // Sync API client
+        USER_ID = me.user_id;
+        api.userId = me.user_id;
         renderRecentInteractions(me.recent_interactions);
 
         if (!me.base_persona) {
-            // New user: Show persona setup
             recsContainer.classList.add('hidden');
             footerDashboard.classList.add('hidden');
             appIntro.classList.add('hidden'); 
@@ -430,14 +417,9 @@ async function showDashboard() {
             endOfStack.classList.add('hidden'); 
             loadingContainer.classList.add('hidden'); 
         } else {
-            // Existing user: Show recs
             const { interest, persona } = splitPersona(me.base_persona);
-            
-            // Pre-fill onboarding form (in case it's shown)
             interestInput.value = interest;
             personaInput.value = persona;
-            
-            // Pre-fill edit modal form (for when they click edit)
             modalInterestInput.value = interest;
             modalPersonaInput.value = persona;
             
@@ -487,7 +469,7 @@ async function handleSavePersona() {
     const combinedPersona = `${interest} | ${persona}`;
     try {
         await api.setPersona(combinedPersona);
-        showDashboard(); // Reload dashboard
+        showDashboard();
     } catch (err) {
         alert(`Error saving persona: ${err.message}`);
     }
@@ -502,15 +484,13 @@ async function handleUpdatePersona() {
     }
 
     const combinedPersona = `${interest} | ${persona}`;
-    
-    // Show saving state
     modalSaveBtn.disabled = true;
     modalSaveBtn.textContent = "Saving...";
 
     try {
         await api.setPersona(combinedPersona);
-        personaEditModal.classList.add('hidden'); // Hide modal
-        loadRecommendations(); // Reload recommendations with new persona
+        personaEditModal.classList.add('hidden');
+        loadRecommendations();
     } catch (err) {
         alert(`Error saving persona: ${err.message}`);
     } finally {
@@ -520,7 +500,6 @@ async function handleUpdatePersona() {
 }
 
 
-// *** NEW: Generative Loading ***
 function startGenerativeLoadingText() {
     const messages = [
         "Analyzing your persona and recent swipes...",
@@ -538,11 +517,11 @@ function startGenerativeLoadingText() {
             loadingText.textContent = messages[msgIndex];
             loadingText.style.opacity = 1;
             msgIndex = (msgIndex + 1) % messages.length;
-        }, 400); // Wait for fade out
+        }, 400);
     };
 
-    updateText(); // Show first message immediately
-    loadingInterval = setInterval(updateText, 2500); // Cycle every 2.5 seconds
+    updateText();
+    loadingInterval = setInterval(updateText, 2500);
 }
 
 function stopGenerativeLoadingText() {
@@ -554,9 +533,7 @@ function stopGenerativeLoadingText() {
     loadingText.textContent = "";
 }
 
-// *** MODIFIED: loadRecommendations ***
 async function loadRecommendations() {
-    // Clear existing state
     cardStack.innerHTML = '';
     endOfStack.classList.add('hidden'); 
     cardCounter.classList.add('hidden'); 
@@ -564,18 +541,15 @@ async function loadRecommendations() {
     appIntro.classList.add('hidden'); 
     recsContainer.classList.remove('hidden'); 
     
-    // START GENERATIVE LOADING
     loadingContainer.classList.remove('hidden');
     startGenerativeLoadingText();
 
-    // Reset buttons and quota messages
     refreshBtn.disabled = false;
     refreshBtn.textContent = "Check for more";
     refreshBtn.classList.remove('opacity-50', 'cursor-not-allowed');
     const quotaMsgEl = endOfStack.querySelector('#quota-message');
     if (quotaMsgEl) quotaMsgEl.classList.add('hidden');
 
-    // Clone and replace buttons to remove old listeners
     const newLikeBtn = likeBtn.cloneNode(true);
     likeBtn.parentNode.replaceChild(newLikeBtn, likeBtn);
     likeBtn = newLikeBtn; 
@@ -588,7 +562,6 @@ async function loadRecommendations() {
         const data = await api.getRecommendations();
         currentArticles = data.recommendations;
         
-        // STOP GENERATIVE LOADING
         stopGenerativeLoadingText();
         loadingContainer.classList.add('hidden');
 
@@ -602,13 +575,11 @@ async function loadRecommendations() {
             recsContainer.classList.add('hidden'); 
             appIntro.classList.add('hidden');
             endOfStack.classList.remove('hidden');
-            // Use NEW end-of-stack copy
             endOfStack.querySelector('h3').textContent = "Your Daily Briefing is Ready";
             endOfStack.querySelector('p').textContent = "You're all caught up for now. Your feedback helps sharpen tomorrow's briefing.";
         }
     } catch (err) {
         console.error(err);
-        // STOP GENERATIVE LOADING (on error)
         stopGenerativeLoadingText();
         loadingContainer.classList.add('hidden');
         if (err.message.includes('403')) {
@@ -621,14 +592,12 @@ async function loadRecommendations() {
     }
 }
 
-// *** MODIFIED: renderCardStack (for "Popping" effect) ***
 function renderCardStack() {
     const total = currentArticles.length; 
     currentArticles.reverse().forEach((article, index) => {
         const card = createCardElement(article);
         card.style.zIndex = index;
         
-        // Calculate perspective transform
         const translateY = (total - 1 - index) * 10;
         const scale = 1 - (total - 1 - index) * 0.05;
         const opacity = 1 - (total - 1 - index) * 0.1;
@@ -636,14 +605,14 @@ function renderCardStack() {
         const transform = `translateY(${translateY}px) scale(${scale})`;
         card.style.transform = transform;
         card.style.opacity = opacity;
-        card.dataset.originalTransform = transform; // Store original state
+        card.dataset.originalTransform = transform;
         
         cardStack.appendChild(card);
     });
     updateCardCounter(); 
     const topCard = cardStack.lastChild;
     if (topCard) {
-        topCard.style.opacity = 1; // Ensure top card is fully visible
+        topCard.style.opacity = 1;
         initSwipe(topCard);
         likeBtn.onclick = () => triggerSwipe(topCard, 'right');
         dislikeBtn.onclick = () => triggerSwipe(topCard, 'left');
@@ -661,8 +630,6 @@ function updateCardCounter() {
     }
 }
 
-
-// *** MODIFIED: createCardElement (for "Click to Flip Back") ***
 function createCardElement(article) {
     const card = articleTemplate.content.cloneNode(true).firstElementChild;
     card.dataset.id = article.id;
@@ -684,7 +651,6 @@ function createCardElement(article) {
     expandedContent.querySelector('p:last-of-type').textContent = article.reason;
     expandedContent.querySelector('a').href = article.url;
 
-    // Open logic
     cardContent.addEventListener('click', () => {
         if (!card.classList.contains('dragging')) {
             cardContent.classList.add('hidden');
@@ -692,7 +658,6 @@ function createCardElement(article) {
         }
     });
 
-    // Close logic
     const closeExpandedView = () => {
         cardContent.classList.remove('hidden');
         expandedContent.classList.add('hidden');
@@ -703,9 +668,7 @@ function createCardElement(article) {
         closeExpandedView();
     });
 
-    // *** NEW: Click expanded view to close ***
     expandedContent.addEventListener('click', (e) => {
-        // Only close if the click is NOT on the "Read Full Article" link
         if (e.target !== readLink && !readLink.contains(e.target)) {
             e.stopPropagation();
             closeExpandedView();
@@ -715,8 +678,6 @@ function createCardElement(article) {
     return card;
 }
 
-
-// *** MODIFIED: initSwipe (for "Popping" effect) ***
 function initSwipe(card) {
     const gesture = new Hammer(card);
     const screenWidth = window.innerWidth;
@@ -730,7 +691,6 @@ function initSwipe(card) {
     gesture.on('panmove', (e) => {
         if (!card.classList.contains('dragging')) return;
         const rotation = e.deltaX * 0.05;
-        // Don't override Y or Scale, just add X and Rotate
         const originalTransform = card.dataset.originalTransform || 'translateY(0px) scale(1)';
         card.style.transform = `${originalTransform} translateX(${e.deltaX}px) rotate(${rotation}deg)`;
         
@@ -750,15 +710,12 @@ function initSwipe(card) {
         if (absDeltaX > 100 || velocity > 0.5) {
             triggerSwipe(card, direction); 
         } else {
-            // Snap back to original stack position
             card.style.transition = 'transform 0.3s ease'; 
             card.style.transform = card.dataset.originalTransform;
         }
     });
 }
 
-
-// *** MODIFIED: triggerSwipe (for Feedback & Popping) ***
 function triggerSwipe(card, direction) {
     if (card.classList.contains('swiping')) return; 
     card.classList.add('swiping');
@@ -774,13 +731,12 @@ function triggerSwipe(card, direction) {
     addInteractionToFooter(articleTitle, interaction);
     handleSwipe(card.dataset.id, interaction);
 
-    // *** NEW: Show "I'm learning" feedback ***
     if (swipeFeedbackTimer) clearTimeout(swipeFeedbackTimer);
     swipeFeedback.textContent = interaction === 'like' ? "Got it. I'll find more like this." : "Okay. I'll adjust your feed.";
     swipeFeedback.style.opacity = 1;
     swipeFeedbackTimer = setTimeout(() => {
         swipeFeedback.style.opacity = 0;
-    }, 1500); // Hide after 1.5 seconds
+    }, 1500);
 
 
     setTimeout(() => {
@@ -789,11 +745,10 @@ function triggerSwipe(card, direction) {
         
         const nextCard = cardStack.lastChild;
         if (nextCard) {
-            // *** NEW: "Pop" next card into place ***
             nextCard.style.transition = 'transform 0.2s ease-out, opacity 0.2s ease-out';
             nextCard.style.transform = 'translateY(0px) scale(1)';
             nextCard.style.opacity = 1;
-            nextCard.dataset.originalTransform = 'translateY(0px) scale(1)'; // Update its base state
+            nextCard.dataset.originalTransform = 'translateY(0px) scale(1)';
             
             initSwipe(nextCard);
             likeBtn.onclick = () => triggerSwipe(nextCard, 'right');
@@ -802,7 +757,6 @@ function triggerSwipe(card, direction) {
             recsContainer.classList.add('hidden');
             appIntro.classList.add('hidden'); 
             
-            // *** NEW: Show updated end-of-stack message ***
             endOfStack.classList.remove('hidden');
             endOfStack.querySelector('h3').textContent = "Your Daily Briefing is Ready";
             endOfStack.querySelector('p').textContent = "You've reviewed your top 5 articles. Your feedback helps sharpen tomorrow's briefing.";
@@ -873,8 +827,6 @@ function handleQuotaExceeded() {
 
 
 // === BOOTSTRAP ===
-// All event listeners are added here, after all
-// functions and variables have been defined.
 loginBtn.addEventListener('click', handleLogin);
 savePersonaBtn.addEventListener('click', handleSavePersona);
 refreshBtn.addEventListener('click', loadRecommendations);
@@ -884,9 +836,8 @@ logoutBtn.addEventListener('click', () => {
 });
 
 editPersonaBtn.addEventListener('click', async () => {
-    // Show modal, pre-fill with latest persona
     try {
-        const me = await api.getMe(); // Fetch fresh data
+        const me = await api.getMe();
         const { interest, persona } = splitPersona(me.base_persona);
         modalInterestInput.value = interest;
         modalPersonaInput.value = persona;

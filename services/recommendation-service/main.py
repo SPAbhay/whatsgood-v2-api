@@ -244,7 +244,8 @@ async def get_recommendations(user_id: str):
 
         cross_encoder_pairs = []
         for article in articles_response.data:
-            cross_encoder_pairs.append([user_persona_text, article['content']])
+            content_snippet = article['content'][:4000] 
+            cross_encoder_pairs.append([user_persona_text, content_snippet])
 
         cross_scores = cross_encoder.predict(cross_encoder_pairs)
 

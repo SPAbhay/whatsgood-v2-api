@@ -15,5 +15,5 @@ python-dotenv
 beautifulsoup4
 python-dateutil
 
-lxml
+lxml[html_clean]
 newspaper3k

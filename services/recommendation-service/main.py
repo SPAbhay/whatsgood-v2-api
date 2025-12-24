@@ -396,51 +396,348 @@
 #         return {"service": "recommendation-service", "status": "running", "models_loaded": True}
 #     return {"service": "recommendation-service", "status": "initializing", "models_loaded": False}
 
+# import os
+# import numpy as np
+# from fastapi import FastAPI, HTTPException
+# from fastapi.middleware.cors import CORSMiddleware
+# from pydantic import BaseModel
+# from supabase import create_client, Client
+# from pinecone import Pinecone
+# from groq import AsyncGroq  
+# from sentence_transformers import SentenceTransformer, CrossEncoder
+# from contextlib import asynccontextmanager
+# from datetime import datetime, timezone
+# import json
+# import asyncio
+# import traceback
+
+# # --- 1. INITIALIZATION & MODEL LOADING ---
+
+# supabase: Client = None
+# pinecone_index = None
+# groq_client: AsyncGroq = None # Typed as AsyncGroq
+# bi_encoder: SentenceTransformer = None
+# cross_encoder: CrossEncoder = None
+
+# @asynccontextmanager
+# async def lifespan(app: FastAPI):
+#     global supabase, pinecone_index, groq_client, bi_encoder, cross_encoder
+    
+#     print("Recommendation Service: Initializing clients and loading models...")
+    
+#     url: str = os.environ.get("SUPABASE_URL")
+#     key: str = os.environ.get("SUPABASE_ANON_KEY")
+#     supabase = create_client(url, key)
+    
+#     pc = Pinecone(api_key=os.environ.get("PINECONE_API_KEY"))
+#     pinecone_index = pc.Index("whats-good-v2")
+
+#     groq_client = AsyncGroq(api_key=os.environ.get("GROQ_API_KEY"))
+    
+#     # Load Models (Heavy CPU tasks)
+#     bi_encoder = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+#     cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L6-v2')
+    
+#     print("Models and clients loaded successfully.")
+#     yield
+#     print("Recommendation Service: Shutting down.")
+
+# app = FastAPI(lifespan=lifespan)
+
+# origins = ["*", "https://whatsgood.abhay-arora.com"]
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=origins,
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
+
+# # --- 2. HELPER FUNCTIONS ---
+
+# def get_freshness_score(published_date_str: str) -> float:
+#     try:
+#         published_date = datetime.fromisoformat(published_date_str).replace(tzinfo=timezone.utc)
+#         days_old = (datetime.now(timezone.utc) - published_date).days
+#         if days_old < 0: return 1.0
+#         if days_old > 14: return 0.0
+#         return 1.0 - (days_old / 14.0)
+#     except:
+#         return 0.0
+
+# async def get_dynamic_query_vector(user_id: str) -> np.ndarray:
+#     # Run Supabase calls in a thread if the client is sync, 
+#     # but supabase-py is usually fast enough. 
+#     # Ideally, we would use an async Supabase client too, but let's focus on LLM first.
+#     user_response = supabase.table('users').select('base_persona').eq('id', user_id).execute()
+#     if not user_response.data:
+#         raise HTTPException(status_code=404, detail="User not found")
+    
+#     base_persona_text = user_response.data[0]['base_persona'] or "Technology enthusiast"
+#     base_vector = bi_encoder.encode(base_persona_text)
+    
+#     interaction_response = supabase.table('user_interactions').select('article_id, interaction_type').eq('user_id', user_id).order('created_at', desc=True).limit(10).execute()
+    
+#     if not interaction_response.data:
+#         return base_vector
+
+#     article_ids = [item['article_id'] for item in interaction_response.data]
+#     if not article_ids: return base_vector
+
+#     fetch_response = pinecone_index.fetch(ids=article_ids)
+#     fetched_vectors = {vec_id: vec.values for vec_id, vec in fetch_response.vectors.items()}
+
+#     dynamic_vector = base_vector
+#     weight = 0.2
+
+#     for item in interaction_response.data:
+#         article_id = item['article_id']
+#         interaction_type = item['interaction_type']
+#         if article_id in fetched_vectors:
+#             article_vector = np.array(fetched_vectors[article_id])
+#             if interaction_type == 'like':
+#                 dynamic_vector += weight * (article_vector - dynamic_vector)
+#             elif interaction_type == 'dislike':
+#                 dynamic_vector -= weight * (article_vector - dynamic_vector)
+    
+#     return dynamic_vector / np.linalg.norm(dynamic_vector)
+
+# async def generate_article_insight(article, user_persona):
+#     """
+#     Process a single article independently.
+#     This allows us to run 5 of these in parallel.
+#     """
+#     system_prompt = "You are an expert news analyst. Write a single, sharp 'hook' sentence (15-20 words) summarizing the core insight of this article. Then write a 1-sentence 'reason' linking it to the user's persona."
+    
+#     human_prompt = f"""
+#     User Persona: "{user_persona}"
+#     Article Title: "{article['title']}"
+#     Article Content: "{article['content'][:1500]}"
+    
+#     Return strictly valid JSON:
+#     {{
+#         "summary": "The sharp summary hook.",
+#         "reason": "The connection to the user."
+#     }}
+#     """
+    
+#     try:
+#         chat_completion = await groq_client.chat.completions.create(
+#             messages=[
+#                 {"role": "system", "content": system_prompt},
+#                 {"role": "user", "content": human_prompt}
+#             ],
+#             model="llama-3.1-8b-instant",
+#             temperature=0.2,
+#             response_format={"type": "json_object"},
+#         )
+#         data = json.loads(chat_completion.choices[0].message.content)
+#         return {
+#             "id": article['id'],
+#             "title": article['title'], # Pass through original title
+#             "url": article['article_url'],
+#             "published_date": article['published_date'],
+#             "industry": article['industry'],
+#             "final_score": article['final_score'],
+#             "summary": data.get("summary", "Summary unavailable."),
+#             "reason": data.get("reason", "Matches your interests.")
+#         }
+#     except Exception as e:
+#         print(f"Error processing article {article['id']}: {e}")
+#         # Fallback to prevent one failure breaking the whole feed
+#         return {
+#             "id": article['id'],
+#             "title": article['title'],
+#             "url": article['article_url'],
+#             "published_date": article['published_date'],
+#             "industry": article['industry'],
+#             "final_score": article['final_score'],
+#             "summary": article['title'], # Fallback
+#             "reason": "Based on your recent reading history." # Fallback
+#         }
+
+# # --- 3. PYDANTIC MODELS ---
+
+# class RecommendedArticle(BaseModel):
+#     id: str
+#     title: str
+#     url: str
+#     summary: str
+#     reason: str
+#     published_date: str
+#     industry: str
+#     final_score: float
+
+# class RecommendationResponse(BaseModel):
+#     service: str
+#     user_id: str
+#     recommendations: list[RecommendedArticle]
+
+# # --- 4. MAIN ENDPOINT ---
+
+# @app.get("/recommendations", response_model=RecommendationResponse)
+# async def get_recommendations(user_id: str):
+#     try:
+#         # Stage 1: Dynamic Vector
+#         query_vector = await get_dynamic_query_vector(user_id)
+
+#         # Stage 2: Retrieval
+#         # This reduces downstream Cross-Encoder load by 3.3x
+#         retrieve_response = pinecone_index.query(
+#             vector=query_vector.tolist(),
+#             top_k=15, 
+#             include_metadata=False
+#         )
+        
+#         initial_ids = [m.id for m in retrieve_response.matches]
+#         pinecone_scores = {m.id: m.score for m in retrieve_response.matches}
+        
+#         # (Filtering logic kept simple for brevity)
+#         ids_to_fetch = initial_ids
+        
+#         if not ids_to_fetch:
+#              return RecommendationResponse(service="rec-service", user_id=user_id, recommendations=[])
+
+#         # Stage 3: Fetch Data
+#         articles_response = supabase.table('articles').select('*').in_('id', ids_to_fetch).execute()
+#         articles_data = articles_response.data
+        
+#         if not articles_data:
+#              return RecommendationResponse(service="rec-service", user_id=user_id, recommendations=[])
+
+#         # Stage 4: Re-Ranking (CPU Heavy)
+#         # Fetch persona once
+#         user_res = supabase.table('users').select('base_persona').eq('id', user_id).execute()
+#         persona_text = user_res.data[0]['base_persona'] if user_res.data else "Tech enthusiast"
+        
+#         # Prepare pairs for Cross-Encoder
+#         # Note: We are now only processing ~15 items instead of 50
+#         pairs = [[persona_text, a['content'][:1000]] for a in articles_data]
+        
+#         # This is a synchronous blocking call on CPU.
+#         # Ideally we would run this in a threadpool, but reducing N is the biggest win.
+#         cross_scores = cross_encoder.predict(pairs)
+        
+#         ranked_list = []
+#         for i, article in enumerate(articles_data):
+#             p_score = pinecone_scores.get(article['id'], 0.0)
+#             c_score = 1 / (1 + np.exp(-cross_scores[i])) # Sigmoid
+#             f_score = get_freshness_score(article['published_date'])
+            
+#             # Weighted Hybrid Score
+#             final_score = (0.65 * c_score) + (0.25 * p_score) + (0.10 * f_score)
+            
+#             article['final_score'] = final_score
+#             ranked_list.append(article)
+            
+#         ranked_list.sort(key=lambda x: x['final_score'], reverse=True)
+#         top_5_articles = ranked_list[:5]
+
+#         # Stage 5: Fan-Out Generation (Map-Reduce)
+#         print("Starting parallel LLM generation...")
+        
+#         # Create 5 tasks
+#         tasks = [generate_article_insight(article, persona_text) for article in top_5_articles]
+        
+#         # Wait for all of them to finish (Latency = Max(Task), not Sum(Tasks))
+#         final_recommendations = await asyncio.gather(*tasks)
+        
+#         return RecommendationResponse(
+#             service="recommendation-service",
+#             user_id=user_id,
+#             recommendations=final_recommendations
+#         )
+
+#     except Exception as e:
+#         print(f"CRITICAL ERROR: {e}")
+#         traceback.print_exc()
+#         raise HTTPException(status_code=500, detail=str(e))
+    
+# @app.get("/")
+# def read_root():
+#     return {"service": "recommendation-service", "status": "running"}
+
 import os
-import numpy as np
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from supabase import create_client, Client
-from pinecone import Pinecone
-from groq import AsyncGroq  
-from sentence_transformers import SentenceTransformer, CrossEncoder
-from contextlib import asynccontextmanager
-from datetime import datetime, timezone
-import json
-import asyncio
+import sys
 import traceback
+import logging
+import time
 
-# --- 1. INITIALIZATION & MODEL LOADING ---
+# Configure logging immediately
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("whatsgood")
 
+# Tries to import dependencies safely
+try:
+    import numpy as np
+    from fastapi import FastAPI, HTTPException
+    from fastapi.middleware.cors import CORSMiddleware
+    from pydantic import BaseModel
+    from supabase import create_client, Client
+    from pinecone import Pinecone
+    from contextlib import asynccontextmanager
+    from datetime import datetime, timezone
+    import json
+    import asyncio
+    
+    # Check Groq Import specifically
+    try:
+        from groq import AsyncGroq
+    except ImportError:
+        logger.error("CRITICAL: Could not import AsyncGroq. Check requirements.txt contains 'groq>=0.9.0'")
+        raise
+
+    from sentence_transformers import SentenceTransformer, CrossEncoder
+
+except ImportError as e:
+    logger.critical(f"IMPORT ERROR: {e}")
+    sys.exit(1)
+
+# --- GLOBAL VARIABLES ---
 supabase: Client = None
 pinecone_index = None
-groq_client: AsyncGroq = None # Typed as AsyncGroq
-bi_encoder: SentenceTransformer = None
-cross_encoder: CrossEncoder = None
+groq_client = None
+bi_encoder = None
+cross_encoder = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global supabase, pinecone_index, groq_client, bi_encoder, cross_encoder
     
-    print("Recommendation Service: Initializing clients and loading models...")
+    logger.info("--- STARTUP: BEGINNING INITIALIZATION ---")
     
-    url: str = os.environ.get("SUPABASE_URL")
-    key: str = os.environ.get("SUPABASE_ANON_KEY")
-    supabase = create_client(url, key)
-    
-    pc = Pinecone(api_key=os.environ.get("PINECONE_API_KEY"))
-    pinecone_index = pc.Index("whats-good-v2")
+    try:
+        # 1. Validation
+        if not os.environ.get("SUPABASE_URL"): logger.warning("Missing SUPABASE_URL")
+        if not os.environ.get("GROQ_API_KEY"): logger.warning("Missing GROQ_API_KEY")
 
-    groq_client = AsyncGroq(api_key=os.environ.get("GROQ_API_KEY"))
-    
-    # Load Models (Heavy CPU tasks)
-    bi_encoder = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
-    cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L6-v2')
-    
-    print("Models and clients loaded successfully.")
-    yield
-    print("Recommendation Service: Shutting down.")
+        # 2. Init Clients
+        supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_ANON_KEY"))
+        
+        pc = Pinecone(api_key=os.environ.get("PINECONE_API_KEY"))
+        pinecone_index = pc.Index("whats-good-v2")
+        
+        # 3. Init Groq (Async)
+        logger.info("Initializing AsyncGroq...")
+        groq_client = AsyncGroq(api_key=os.environ.get("GROQ_API_KEY"))
+
+        # 4. Load Heavy Models
+        logger.info("Loading Bi-Encoder (this takes time)...")
+        bi_encoder = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+        
+        logger.info("Loading Cross-Encoder (this takes time)...")
+        cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L6-v2')
+        
+        logger.info("--- STARTUP: SUCCESS ---")
+        yield
+        
+    except Exception as e:
+        logger.critical(f"STARTUP CRASHED: {e}")
+        traceback.print_exc()
+        await asyncio.sleep(1)
+        sys.exit(1)
+    finally:
+        logger.info("Shutdown initiated.")
 
 app = FastAPI(lifespan=lifespan)
 
@@ -453,8 +750,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- 2. HELPER FUNCTIONS ---
-
+# --- HELPER FUNCTIONS ---
 def get_freshness_score(published_date_str: str) -> float:
     try:
         published_date = datetime.fromisoformat(published_date_str).replace(tzinfo=timezone.utc)
@@ -466,9 +762,6 @@ def get_freshness_score(published_date_str: str) -> float:
         return 0.0
 
 async def get_dynamic_query_vector(user_id: str) -> np.ndarray:
-    # Run Supabase calls in a thread if the client is sync, 
-    # but supabase-py is usually fast enough. 
-    # Ideally, we would use an async Supabase client too, but let's focus on LLM first.
     user_response = supabase.table('users').select('base_persona').eq('id', user_id).execute()
     if not user_response.data:
         raise HTTPException(status_code=404, detail="User not found")
@@ -503,22 +796,12 @@ async def get_dynamic_query_vector(user_id: str) -> np.ndarray:
     return dynamic_vector / np.linalg.norm(dynamic_vector)
 
 async def generate_article_insight(article, user_persona):
-    """
-    Process a single article independently.
-    This allows us to run 5 of these in parallel.
-    """
     system_prompt = "You are an expert news analyst. Write a single, sharp 'hook' sentence (15-20 words) summarizing the core insight of this article. Then write a 1-sentence 'reason' linking it to the user's persona."
-    
     human_prompt = f"""
     User Persona: "{user_persona}"
     Article Title: "{article['title']}"
     Article Content: "{article['content'][:1500]}"
-    
-    Return strictly valid JSON:
-    {{
-        "summary": "The sharp summary hook.",
-        "reason": "The connection to the user."
-    }}
+    Return strictly valid JSON with keys: "summary", "reason".
     """
     
     try:
@@ -534,7 +817,7 @@ async def generate_article_insight(article, user_persona):
         data = json.loads(chat_completion.choices[0].message.content)
         return {
             "id": article['id'],
-            "title": article['title'], # Pass through original title
+            "title": article['title'],
             "url": article['article_url'],
             "published_date": article['published_date'],
             "industry": article['industry'],
@@ -543,8 +826,7 @@ async def generate_article_insight(article, user_persona):
             "reason": data.get("reason", "Matches your interests.")
         }
     except Exception as e:
-        print(f"Error processing article {article['id']}: {e}")
-        # Fallback to prevent one failure breaking the whole feed
+        logger.error(f"LLM Generation Error for {article['id']}: {e}")
         return {
             "id": article['id'],
             "title": article['title'],
@@ -552,12 +834,11 @@ async def generate_article_insight(article, user_persona):
             "published_date": article['published_date'],
             "industry": article['industry'],
             "final_score": article['final_score'],
-            "summary": article['title'], # Fallback
-            "reason": "Based on your recent reading history." # Fallback
+            "summary": article['title'],
+            "reason": "Based on your recent reading history."
         }
 
-# --- 3. PYDANTIC MODELS ---
-
+# --- 3. RESPONSE MODELS ---
 class RecommendedArticle(BaseModel):
     id: str
     title: str
@@ -573,86 +854,70 @@ class RecommendationResponse(BaseModel):
     user_id: str
     recommendations: list[RecommendedArticle]
 
-# --- 4. MAIN ENDPOINT ---
-
+# --- 4. ENDPOINTS ---
 @app.get("/recommendations", response_model=RecommendationResponse)
 async def get_recommendations(user_id: str):
+    t_start = time.time()
     try:
-        # Stage 1: Dynamic Vector
+        # Stage 1: Vector
+        t1_s = time.time()
         query_vector = await get_dynamic_query_vector(user_id)
+        logger.info(f"TIMING: Stage 1 (Dynamic Vector) took {time.time() - t1_s:.4f}s")
 
-        # Stage 2: Retrieval
-        # This reduces downstream Cross-Encoder load by 3.3x
-        retrieve_response = pinecone_index.query(
-            vector=query_vector.tolist(),
-            top_k=15, 
-            include_metadata=False
-        )
-        
+        # Stage 2: Retrieval (Reducing to top_k=8 to help CPU)
+        t2_s = time.time()
+        retrieve_response = pinecone_index.query(vector=query_vector.tolist(), top_k=8, include_metadata=False)
         initial_ids = [m.id for m in retrieve_response.matches]
         pinecone_scores = {m.id: m.score for m in retrieve_response.matches}
+        logger.info(f"TIMING: Stage 2 (Retrieval) took {time.time() - t2_s:.4f}s")
         
-        # (Filtering logic kept simple for brevity)
-        ids_to_fetch = initial_ids
-        
-        if not ids_to_fetch:
-             return RecommendationResponse(service="rec-service", user_id=user_id, recommendations=[])
+        if not initial_ids: return RecommendationResponse(service="rec", user_id=user_id, recommendations=[])
 
         # Stage 3: Fetch Data
-        articles_response = supabase.table('articles').select('*').in_('id', ids_to_fetch).execute()
+        t3_s = time.time()
+        articles_response = supabase.table('articles').select('*').in_('id', initial_ids).execute()
         articles_data = articles_response.data
-        
-        if not articles_data:
-             return RecommendationResponse(service="rec-service", user_id=user_id, recommendations=[])
+        if not articles_data: return RecommendationResponse(service="rec", user_id=user_id, recommendations=[])
+        logger.info(f"TIMING: Stage 3 (Supabase Fetch) took {time.time() - t3_s:.4f}s")
 
         # Stage 4: Re-Ranking (CPU Heavy)
-        # Fetch persona once
+        t4_s = time.time()
         user_res = supabase.table('users').select('base_persona').eq('id', user_id).execute()
         persona_text = user_res.data[0]['base_persona'] if user_res.data else "Tech enthusiast"
         
-        # Prepare pairs for Cross-Encoder
-        # Note: We are now only processing ~15 items instead of 50
         pairs = [[persona_text, a['content'][:1000]] for a in articles_data]
-        
-        # This is a synchronous blocking call on CPU.
-        # Ideally we would run this in a threadpool, but reducing N is the biggest win.
         cross_scores = cross_encoder.predict(pairs)
         
         ranked_list = []
         for i, article in enumerate(articles_data):
             p_score = pinecone_scores.get(article['id'], 0.0)
-            c_score = 1 / (1 + np.exp(-cross_scores[i])) # Sigmoid
+            c_score = 1 / (1 + np.exp(-cross_scores[i])) 
             f_score = get_freshness_score(article['published_date'])
             
-            # Weighted Hybrid Score
             final_score = (0.65 * c_score) + (0.25 * p_score) + (0.10 * f_score)
-            
             article['final_score'] = final_score
             ranked_list.append(article)
             
         ranked_list.sort(key=lambda x: x['final_score'], reverse=True)
         top_5_articles = ranked_list[:5]
+        logger.info(f"TIMING: Stage 4 (Re-Ranking Cross-Encoder) took {time.time() - t4_s:.4f}s")
 
-        # Stage 5: Fan-Out Generation (Map-Reduce)
-        print("Starting parallel LLM generation...")
-        
-        # Create 5 tasks
+        # Stage 5: Parallel Generation
+        t5_s = time.time()
         tasks = [generate_article_insight(article, persona_text) for article in top_5_articles]
-        
-        # Wait for all of them to finish (Latency = Max(Task), not Sum(Tasks))
         final_recommendations = await asyncio.gather(*tasks)
+        logger.info(f"TIMING: Stage 5 (LLM Gen) took {time.time() - t5_s:.4f}s")
         
-        return RecommendationResponse(
-            service="recommendation-service",
-            user_id=user_id,
-            recommendations=final_recommendations
-        )
+        total_time = time.time() - t_start
+        logger.info(f"TIMING: TOTAL REQUEST took {total_time:.4f}s")
+
+        return RecommendationResponse(service="recommendation-service", user_id=user_id, recommendations=final_recommendations)
 
     except Exception as e:
-        print(f"CRITICAL ERROR: {e}")
+        logger.error(f"ENDPOINT ERROR: {e}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
-    
+
 @app.get("/")
 def read_root():
-    return {"service": "recommendation-service", "status": "running"}
+    return {"status": "ok", "service": "recommendation-service"}

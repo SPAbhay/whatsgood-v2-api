@@ -46,7 +46,12 @@ graph TD
 
 ## Key Engineering Implementations
 
-### 1. Vector Arithmetic for Real-Time Learning
+### 1. Performance Engineering: From 17s to 6s
+I initially faced a massive latency spike (17s p95) due to **AWS Fargate CPU throttling** during sequential processing.
+* **The Fix:** I refactored the pipeline to use **Asynchronous Fan-Out** (`asyncio.gather`), firing 5 parallel LLM generation requests instead of blocking the event loop sequentially.
+* **The Result:** Shifted the system from CPU-bound to I/O-bound, stabilizing latency at **~6s** even under burst load.
+
+### 2. Vector Arithmetic for Real-Time Learning
 
 Instead of static retrieval, I implemented Vector Interpolation using NumPy. The system modifies the user's "Persona Vector" in real-time.
 
@@ -62,7 +67,7 @@ The feed adapts instantly to user sentiment without retraining the model.
 
 ---
 
-### 2. The "Cold Start" Optimization (Lazy Loading)
+### 3. The "Cold Start" Optimization (Lazy Loading)
 
 **The Problem:**  
 The sentence-transformers model is >400MB. Loading it on every Lambda invocation caused timeouts.
@@ -75,7 +80,7 @@ Reduced average latency from 10s (cold) to <200ms (warm).
 
 ---
 
-### 3. CI/CD Cross-Compilation (ARM64 vs x86)
+### 4. CI/CD Cross-Compilation (ARM64 vs x86)
 
 **The Problem:**  
 Developing on a Mac M3 (ARM64) but deploying to AWS Lambda (x86_64) caused "Exec Format Errors" in production Docker containers.
@@ -106,5 +111,6 @@ LangChain, SentenceTransformers (Bi/Cross-Encoders), Groq (Llama 3)
 
 ## Performance
 
-- **p95 Latency:** ~XXXXms (End-to-End RAG Pipeline)
-- **Throughput:** Handles 15+ concurrent users via FastAPI Async Workers
+* **p95 Retrieval Latency:** <850ms (Vector Search + Re-Ranking)
+* **End-to-End Latency:** ~6s (Includes Parallel LLM Generation)
+* **Throughput:** Handles 15+ concurrent users via FastAPI Async Workers

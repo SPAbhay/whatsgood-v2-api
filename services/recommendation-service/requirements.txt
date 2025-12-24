@@ -2,7 +2,7 @@ fastapi
 uvicorn[standard]
 supabase
 pinecone
-groq
+asyncgroq
 python-dotenv
 pydantic
 

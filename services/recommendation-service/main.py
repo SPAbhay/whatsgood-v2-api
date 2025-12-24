@@ -174,7 +174,7 @@ async def get_recommendations(user_id: str):
         print("RecSvc: Stage 2 - Retrieving Top 50 candidates from Pinecone...")
         retrieve_response = pinecone_index.query(
             vector=query_vector.tolist(),
-            top_k=50,
+            top_k=10,
             include_metadata=False
         )
         initial_retrieved_ids = [match.id for match in retrieve_response.matches]
